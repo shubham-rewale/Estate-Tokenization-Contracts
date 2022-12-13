@@ -30,9 +30,9 @@ contract MockDAO is OwnableUpgradeable {
     }
     //proposal Id
     uint256 public proposalId; //* Note any proposer can propose same proposal twice , One thing we can improve here we can use some hash to create proposal Id (using proposal details) to detect same proposal . so that no two same proposal Id exists.
-    uint256 private votingDelay;
+    uint256 public votingDelay;
     uint256 public votingPeriod;
-    bytes32 private proposersRootHash;
+    address public propertyManager;
     //map each proposal with corresponding proposal id
     mapping(uint256 => Proposal) public proposals;
     //map each votings with corresponding proposal id
@@ -43,11 +43,11 @@ contract MockDAO is OwnableUpgradeable {
     function initialize(
         uint256 _votingDelay,
         uint256 _votingPeriod,
-        bytes32 _proposersRootHash
+        address _propertyManager
     ) public initializer {
         __Ownable_init();
         setVotingDelayAndPeriod(_votingDelay, _votingPeriod);
-        setProposersRootHash(_proposersRootHash);
+        setPropertyManager(_propertyManager);
     }
 
     /**
@@ -66,28 +66,23 @@ contract MockDAO is OwnableUpgradeable {
     }
 
     //later need to change its access
-    function setProposersRootHash(bytes32 _proposersRootHash) public onlyOwner {
+    function setPropertyManager(address _propertyManager) public onlyOwner {
         require(
-            _proposersRootHash != bytes32(0),
-            "Proposers Root Hash Cannot be Empty"
+            _propertyManager != address(0),
+            "property manager address cannot be zero"
         );
-        proposersRootHash = _proposersRootHash;
+        propertyManager = _propertyManager;
     }
 
     //need to validate
     function propose(
         uint256 _amount,
         string calldata _proposalProof,
-        bytes32 _votersRootHash,
-        bytes32[] memory _proposerMarkleProof
+        bytes32 _votersRootHash
     ) public {
         require(
-            MerkleProofUpgradeable.verify(
-                _proposerMarkleProof,
-                proposersRootHash,
-                keccak256(abi.encodePacked(msg.sender))
-            ),
-            "Invalid proof .Proposer is not whitelisted"
+            msg.sender == propertyManager,
+            "Caller is not property manager"
         );
         require(_amount > 0, "Amount should be greater than 0");
         require(

@@ -2,40 +2,26 @@ const { MerkleTree } = require("merkletreejs");
 const keccak256 = require("keccak256");
 
 class MogulDAOMarkleTree {
-  constructor(proposersAddress, votersAddress) {
-    this.ProposersAddress = proposersAddress;
-    this.VotersAddress = votersAddress;
-    this.proposerMarkleTree;
-    this.voterMarkleTree;
+  constructor(propertyOwnerAddresses) {
+    this.propertyOwnerAddresses = propertyOwnerAddresses;
+    this.propertyOwnersMarkleTree;
   }
 
-  getProposersRootHash() {
-    const leafNodes = this.ProposersAddress.map((addr) => keccak256(addr));
-    this.proposerMarkleTree = new MerkleTree(leafNodes, keccak256, {
-      sortPairs: true,
-    });
-    const rootHash = this.proposerMarkleTree.getHexRoot();
-    return rootHash;
-  }
-
-  getProposerProof(proposerAddress) {
-    const proof = this.proposerMarkleTree.getHexProof(
-      keccak256(proposerAddress)
+  getOwnersRootHash() {
+    const leafNodes = this.propertyOwnerAddresses.map((addr) =>
+      keccak256(addr)
     );
-    return proof;
-  }
-
-  getVotersRootHash() {
-    const leafNodes = this.VotersAddress.map((addr) => keccak256(addr));
-    this.voterMarkleTree = new MerkleTree(leafNodes, keccak256, {
+    this.propertyOwnersMarkleTree = new MerkleTree(leafNodes, keccak256, {
       sortPairs: true,
     });
-    const rootHash = this.voterMarkleTree.getHexRoot();
+    const rootHash = this.propertyOwnersMarkleTree.getHexRoot();
     return rootHash;
   }
 
-  getVoterProof(voterAddress) {
-    const proof = this.voterMarkleTree.getHexProof(keccak256(voterAddress));
+  getOwnerProof(ownerAddress) {
+    const proof = this.propertyOwnersMarkleTree.getHexProof(
+      keccak256(ownerAddress)
+    );
     return proof;
   }
 }
