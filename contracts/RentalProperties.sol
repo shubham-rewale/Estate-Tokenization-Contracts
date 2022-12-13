@@ -20,7 +20,6 @@ contract RentalProperties is
     Token token;
     MaintenanceReserve maintenanceReserve;
     VacancyReserve vacancyReserve;
-    bytes32 public whiteListRoot;
 
     struct rentalPropertyDetails {
         uint256 propertyTokenId;
@@ -94,18 +93,6 @@ contract RentalProperties is
         maintenanceReserve = MaintenanceReserve(_maintenanceReserveContract);
         vacancyReserve = VacancyReserve(_vacancyReserveContract);
         propertyManager = _propertyManager;
-    }
-
-    function setRoot(bytes32 _whiteListRoot) external onlyOwner {
-        whiteListRoot = _whiteListRoot;
-    }
-
-    function isWhitelisted(bytes32[] memory proof, bytes32 leaf)
-        public
-        view
-        returns (bool)
-    {
-        return MerkleProofUpgradeable.verify(proof, whiteListRoot, leaf);
     }
 
     function setPropertyManagerAddr(address _propertyManager)
@@ -379,10 +366,6 @@ contract RentalProperties is
     //     require(
     //         rentalPropertyList[_propertyTokenId].listed == true,
     //         "Property is not listed for the rental process"
-    //     );
-    //     require(
-    //         isWhitelisted(proof, keccak256(abi.encodePacked(msg.sender))),
-    //         "listProperty: Address not whitelisted"
     //     );
     //     require(
     //         shareHoldersRentIncomeBalances[_propertyTokenId][msg.sender] > 0,
