@@ -1,6 +1,7 @@
 # Estate-Tokenization DAO contract
 
 **Table of Contents**
+<br>
 [Overview](#overview)<br>
 [Functions](#functions)<br>
 
