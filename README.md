@@ -1,13 +1,11 @@
-# Sample Hardhat Project
+# List Of Contracts Related to Rent Mechanism
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
+## RentalProperties
+- This contract enables listing of properties already tokenized by ERC1155 token contract.
+- Has mechanism for rent distribution and logic for reserve restoration.
 
-Try running some of the following tasks:
+## MaintenanceReserve and VacancyReserve
+- Both of the contracts are similar to each other.
+- Respective contract will hold ether for the respective purpose.
+- These contracts will be mainly controlled from RentalProperties contract and DAO contract.
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.js
-```
