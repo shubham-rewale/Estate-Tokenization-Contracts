@@ -382,4 +382,31 @@ contract RentalProperties is
     //         amountToTransfer
     //     );
     // }
+
+    function getPropertyStatus(uint256 _propertyTokenId) view external returns (string memory _propertyStatus, address _tenant, uint256 _rentalPeriod, uint256 _noOfCompletedDays, uint256 _dailyRent){
+        rentalPropertyDetails memory propertyDetails = rentalPropertyList[_propertyTokenId];
+        require(propertyDetails.listed == true, "Property Details Not Found");
+        if (propertyDetails.isOccupied == false){
+            _propertyStatus = "Property is currently vacant";
+            _tenant = address(0);
+            _rentalPeriod = 0;
+            _noOfCompletedDays = 0;
+            _dailyRent = 0;
+        }
+        else if (propertyDetails.isOccupied == true) {
+            _propertyStatus = "Property is currently occupied";
+            _tenant = propertyDetails.tenant;
+            _rentalPeriod = propertyDetails.currentRentalPeriodInDays;
+            _noOfCompletedDays = propertyDetails.rentCycleCounter;
+            _dailyRent = propertyDetails.dailyRentAmountForThisRentalPeriod;
+        }
+    }
+
+    function getPropertyRentDeposits(uint256 _propertyTokenId) view external returns(uint256 _propertyDeposits){
+        _propertyDeposits = propertyRentDeposits[_propertyTokenId];
+    }
+
+    // function getShareHoldersRentIncome(uint256 _propertyTokenId) view external returns( uint256 _incomeBalance){
+    //     _incomeBalance = shareHoldersRentIncomeBalances[_propertyTokenId][msg.sender];
+    // }
 }
