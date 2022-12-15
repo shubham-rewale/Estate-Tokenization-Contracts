@@ -406,7 +406,7 @@ contract RentalProperties is
         _propertyDeposits = propertyRentDeposits[_propertyTokenId];
     }
 
-    // function getShareHoldersRentIncome(uint256 _propertyTokenId) view external returns( uint256 _incomeBalance){
-    //     _incomeBalance = shareHoldersRentIncomeBalances[_propertyTokenId][msg.sender];
+    // function getShareHoldersRentIncome(uint256 _propertyTokenId, address shareHolderAddr) view external returns( uint256 _incomeBalance){
+    //     _incomeBalance = shareHoldersRentIncomeBalances[_propertyTokenId][shareHolderAddr];
     // }
 }
