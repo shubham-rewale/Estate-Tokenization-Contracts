@@ -33,14 +33,6 @@ contract RentalProperties is
         uint256 dailyRentAmountForThisRentalPeriod;
         uint256 rentCycleCounter;
     }
-    // tokenId => rentalPropertyDetails
-    mapping(uint256 => rentalPropertyDetails) rentalPropertyList;
-
-    // tokenId => totalRemaining Rent for the current rental period
-    mapping(uint256 => uint256) propertyRentDeposits;
-
-    // tokenId => invvestorAddress => balance
-    // mapping(uint256 => mapping(address => uint256)) shareHoldersRentIncomeBalances;
 
     event RentalPeriodInitiated(
         uint256 _rentalPropertyTokenId,
@@ -59,12 +51,21 @@ contract RentalProperties is
         address[] _tokenOwnerList,
         uint256[] _rentAmountPerOwner
     );
-
     // event rentIncomeWithdrwal(
     //     uint256 _rentalPropertyTokenId,
     //     address beneficiaryAddr,
     //     uint256 withdrawalAmount
     // );
+
+    // tokenId => rentalPropertyDetails
+    mapping(uint256 => rentalPropertyDetails) rentalPropertyList;
+
+    // tokenId => totalRemaining Rent for the current rental period
+    mapping(uint256 => uint256) propertyRentDeposits;
+
+    // tokenId => invvestorAddress => balance
+    // mapping(uint256 => mapping(address => uint256)) shareHoldersRentIncomeBalances;
+
 
     function initialize(
         address _propertyTokenContract,
@@ -95,6 +96,14 @@ contract RentalProperties is
         propertyManager = _propertyManager;
     }
 
+    modifier onlyPropertyManager() {
+        require(
+            msg.sender == propertyManager,
+            "Caller is not the Property Manager"
+        );
+        _;
+    }
+
     function setPropertyManagerAddr(address _propertyManager)
         external
         onlyOwner
@@ -106,13 +115,32 @@ contract RentalProperties is
         propertyManager = _propertyManager;
     }
 
-    modifier onlyPropertyManager() {
-        require(
-            msg.sender == propertyManager,
-            "Caller is not the Property Manager"
-        );
-        _;
+    function getPropertyStatus(uint256 _propertyTokenId) view external returns (string memory _propertyStatus, address _tenant, uint256 _rentalPeriod, uint256 _noOfCompletedDays, uint256 _dailyRent){
+        rentalPropertyDetails memory propertyDetails = rentalPropertyList[_propertyTokenId];
+        require(propertyDetails.listed == true, "Property Details Not Found");
+        if (propertyDetails.isOccupied == false){
+            _propertyStatus = "Property is currently vacant";
+            _tenant = address(0);
+            _rentalPeriod = 0;
+            _noOfCompletedDays = 0;
+            _dailyRent = 0;
+        }
+        else if (propertyDetails.isOccupied == true) {
+            _propertyStatus = "Property is currently occupied";
+            _tenant = propertyDetails.tenant;
+            _rentalPeriod = propertyDetails.currentRentalPeriodInDays;
+            _noOfCompletedDays = propertyDetails.rentCycleCounter;
+            _dailyRent = propertyDetails.dailyRentAmountForThisRentalPeriod;
+        }
     }
+
+    function getPropertyRentDeposits(uint256 _propertyTokenId) view external returns(uint256 _propertyDeposits){
+        _propertyDeposits = propertyRentDeposits[_propertyTokenId];
+    }
+
+    // function getShareHoldersRentIncome(uint256 _propertyTokenId, address shareHolderAddr) view external returns( uint256 _incomeBalance){
+    //     _incomeBalance = shareHoldersRentIncomeBalances[_propertyTokenId][shareHolderAddr];
+    // }
 
     function enterRentalPropertyDetails(
         uint256 _propertyTokenId,
@@ -260,41 +288,6 @@ contract RentalProperties is
         );
     }
 
-    function terminateRentalPeriod(uint256 _propertyTokenId)
-        public
-        onlyPropertyManager
-        nonReentrant
-    {
-        require(
-            rentalPropertyList[_propertyTokenId].listed == true,
-            "Property is not listed for the rental process"
-        );
-        require(
-            rentalPropertyList[_propertyTokenId].isOccupied == true,
-            "Property is already vacant"
-        );
-        uint256 remainingDepositAmount = propertyRentDeposits[_propertyTokenId];
-        address _tenant = rentalPropertyList[_propertyTokenId].tenant;
-        propertyRentDeposits[_propertyTokenId] = 0;
-        rentalPropertyDetails
-            storage _rentalPropertyDetails = rentalPropertyList[
-                _propertyTokenId
-            ];
-        _rentalPropertyDetails.isOccupied = false;
-        _rentalPropertyDetails.tenant = address(0);
-        _rentalPropertyDetails.rentalStartTimestamp = 0;
-        _rentalPropertyDetails.currentRentalPeriodInDays = 0;
-        _rentalPropertyDetails.dailyRentAmountForThisRentalPeriod = 0;
-        _rentalPropertyDetails.rentCycleCounter = 0;
-        payable(_tenant).transfer(remainingDepositAmount);
-        emit RentalPeriodTerminated(
-            _propertyTokenId,
-            _tenant,
-            block.timestamp,
-            remainingDepositAmount
-        );
-    }
-
     function distributeRentAmount(
         uint256 _propertyTokenId,
         address[] memory _ownerList
@@ -359,6 +352,41 @@ contract RentalProperties is
         }
     }
 
+    function terminateRentalPeriod(uint256 _propertyTokenId)
+        public
+        onlyPropertyManager
+        nonReentrant
+    {
+        require(
+            rentalPropertyList[_propertyTokenId].listed == true,
+            "Property is not listed for the rental process"
+        );
+        require(
+            rentalPropertyList[_propertyTokenId].isOccupied == true,
+            "Property is already vacant"
+        );
+        uint256 remainingDepositAmount = propertyRentDeposits[_propertyTokenId];
+        address _tenant = rentalPropertyList[_propertyTokenId].tenant;
+        propertyRentDeposits[_propertyTokenId] = 0;
+        rentalPropertyDetails
+            storage _rentalPropertyDetails = rentalPropertyList[
+                _propertyTokenId
+            ];
+        _rentalPropertyDetails.isOccupied = false;
+        _rentalPropertyDetails.tenant = address(0);
+        _rentalPropertyDetails.rentalStartTimestamp = 0;
+        _rentalPropertyDetails.currentRentalPeriodInDays = 0;
+        _rentalPropertyDetails.dailyRentAmountForThisRentalPeriod = 0;
+        _rentalPropertyDetails.rentCycleCounter = 0;
+        payable(_tenant).transfer(remainingDepositAmount);
+        emit RentalPeriodTerminated(
+            _propertyTokenId,
+            _tenant,
+            block.timestamp,
+            remainingDepositAmount
+        );
+    }
+
     // function withdrawRentIncome(
     //     uint256 _propertyTokenId,
     //     bytes32[] memory proof
@@ -381,32 +409,5 @@ contract RentalProperties is
     //         msg.sender,
     //         amountToTransfer
     //     );
-    // }
-
-    function getPropertyStatus(uint256 _propertyTokenId) view external returns (string memory _propertyStatus, address _tenant, uint256 _rentalPeriod, uint256 _noOfCompletedDays, uint256 _dailyRent){
-        rentalPropertyDetails memory propertyDetails = rentalPropertyList[_propertyTokenId];
-        require(propertyDetails.listed == true, "Property Details Not Found");
-        if (propertyDetails.isOccupied == false){
-            _propertyStatus = "Property is currently vacant";
-            _tenant = address(0);
-            _rentalPeriod = 0;
-            _noOfCompletedDays = 0;
-            _dailyRent = 0;
-        }
-        else if (propertyDetails.isOccupied == true) {
-            _propertyStatus = "Property is currently occupied";
-            _tenant = propertyDetails.tenant;
-            _rentalPeriod = propertyDetails.currentRentalPeriodInDays;
-            _noOfCompletedDays = propertyDetails.rentCycleCounter;
-            _dailyRent = propertyDetails.dailyRentAmountForThisRentalPeriod;
-        }
-    }
-
-    function getPropertyRentDeposits(uint256 _propertyTokenId) view external returns(uint256 _propertyDeposits){
-        _propertyDeposits = propertyRentDeposits[_propertyTokenId];
-    }
-
-    // function getShareHoldersRentIncome(uint256 _propertyTokenId, address shareHolderAddr) view external returns( uint256 _incomeBalance){
-    //     _incomeBalance = shareHoldersRentIncomeBalances[_propertyTokenId][shareHolderAddr];
     // }
 }
