@@ -339,7 +339,8 @@ contract RentalProperties is
         uint256 balanceOfTheOwner;
         uint256[] memory rentAmountPerOwner;
         uint256 rentForAssert;
-        for (uint256 i = 0; i < _ownerList.length; i++) {
+        uint256 ownerListLength = _ownerList.length;
+        for (uint256 i = 0; i < ownerListLength; ) {
             balanceOfTheOwner = token.balanceOf(
                 _ownerList[i],
                 _propertyTokenId
@@ -348,14 +349,20 @@ contract RentalProperties is
                 rentPerTokenShare;
             rentAmountPerOwner[i] = rentAmountForTheOwner;
             rentForAssert += rentAmountForTheOwner;
+            unchecked {
+                i++;
+            }
         }
         assert(rentForAssert <= rentAmount);
         propertyRentDeposits[_propertyTokenId] -= rentForAssert;
-        for (uint256 i; i < _ownerList.length; i++) {
+        for (uint256 i; i < ownerListLength; ) {
             // shareHoldersRentIncomeBalances[_propertyTokenId][
             //     _ownerList[i]
             // ] += rentAmountPerOwner[i];
             payable(_ownerList[i]).transfer(rentAmountPerOwner[i]);
+            unchecked {
+                i++;
+            }
         }
         emit RentDistributed(_propertyTokenId, _ownerList, rentAmountPerOwner);
         if (
