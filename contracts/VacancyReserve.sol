@@ -9,12 +9,6 @@ contract VacancyReserve is Initializable, OwnableUpgradeable {
     address propertyManager;
     address DAOContract;
 
-    // tokenId => vacancyReserveCap
-    mapping(uint256 => uint256) PropertyVacancyReserveCap;
-
-    // tokenId => vacancyReserve
-    mapping(uint256 => uint256) PropertyVacancyReserves;
-
     event VacancyReserveCapUpdated(
         uint256 propertyTokenId,
         uint256 newVacancyCapAmount
@@ -23,6 +17,13 @@ contract VacancyReserve is Initializable, OwnableUpgradeable {
         uint256 propertyTokenId,
         uint256 amountOfFundsAdded
     );
+
+    // tokenId => vacancyReserveCap
+    mapping(uint256 => uint256) PropertyVacancyReserveCap;
+
+    // tokenId => vacancyReserve
+    mapping(uint256 => uint256) PropertyVacancyReserves;
+
 
     function initialize(address _propertyManager) external initializer {
         require(
@@ -74,21 +75,6 @@ contract VacancyReserve is Initializable, OwnableUpgradeable {
         DAOContract = _daoContract;
     }
 
-    function setVacancyReserveCap(uint256 _tokenId, uint256 _capAmount)
-        external
-    {
-        require(
-            msg.sender == rentalPropertiesContract,
-            "setVacancyReserveCap() can only be called through RentalProperties contract"
-        );
-        require(
-            _capAmount >= PropertyVacancyReserves[_tokenId],
-            "New Vacancy Reserve Cap should be greater than or equal to existing Reserve amount"
-        );
-        PropertyVacancyReserveCap[_tokenId] = _capAmount;
-        emit VacancyReserveCapUpdated(_tokenId, _capAmount);
-    }
-
     function checkVacancyReserve(uint256 _tokenId)
         public
         view
@@ -103,6 +89,21 @@ contract VacancyReserve is Initializable, OwnableUpgradeable {
         _propertyVacancyReserveDeficit =
             _propertyVacancyReserveCap -
             _propertyVacancyReserve;
+    }
+
+    function setVacancyReserveCap(uint256 _tokenId, uint256 _capAmount)
+        external
+    {
+        require(
+            msg.sender == rentalPropertiesContract,
+            "setVacancyReserveCap() can only be called through RentalProperties contract"
+        );
+        require(
+            _capAmount >= PropertyVacancyReserves[_tokenId],
+            "New Vacancy Reserve Cap should be greater than or equal to existing Reserve amount"
+        );
+        PropertyVacancyReserveCap[_tokenId] = _capAmount;
+        emit VacancyReserveCapUpdated(_tokenId, _capAmount);
     }
 
     function restoreVacancyReserve(uint256 _tokenId) external payable {

@@ -9,12 +9,6 @@ contract MaintenanceReserve is Initializable, OwnableUpgradeable {
     address propertyManager;
     address DAOContract;
 
-    // tokenId => maintenanceReserveCap
-    mapping(uint256 => uint256) PropertyMaintenanceReserveCap;
-
-    // tokenId => maintenanceReserve
-    mapping(uint256 => uint256) PropertyMaintenanceReserves;
-
     event MaintenanceReserveCapUpdated(
         uint256 propertyTokenId,
         uint256 newMaintenanceCapAmount
@@ -23,6 +17,12 @@ contract MaintenanceReserve is Initializable, OwnableUpgradeable {
         uint256 propertyTokenId,
         uint256 amountOfFundsAdded
     );
+
+    // tokenId => maintenanceReserveCap
+    mapping(uint256 => uint256) PropertyMaintenanceReserveCap;
+
+    // tokenId => maintenanceReserve
+    mapping(uint256 => uint256) PropertyMaintenanceReserves;
 
     function initialize(address _propertyManager) external initializer {
         require(
@@ -73,22 +73,7 @@ contract MaintenanceReserve is Initializable, OwnableUpgradeable {
         );
         DAOContract = _daoContract;
     }
-
-    function setMaintenanceReserveCap(uint256 _tokenId, uint256 _capAmount)
-        external
-    {
-        require(
-            msg.sender == rentalPropertiesContract,
-            "setMaintenanceReserveCap() can only be called through RentalProperties contract"
-        );
-        require(
-            _capAmount >= PropertyMaintenanceReserves[_tokenId],
-            "New Maintenance Reserve Cap should be greater than or equal to existing Reserve amount"
-        );
-        PropertyMaintenanceReserveCap[_tokenId] = _capAmount;
-        emit MaintenanceReserveCapUpdated(_tokenId, _capAmount);
-    }
-
+    
     function checkMaintenanceReserve(uint256 _tokenId)
         public
         view
@@ -106,6 +91,22 @@ contract MaintenanceReserve is Initializable, OwnableUpgradeable {
             _propertyMaintenanceReserveCap -
             _propertyMaintenanceReserve;
     }
+
+    function setMaintenanceReserveCap(uint256 _tokenId, uint256 _capAmount)
+        external
+    {
+        require(
+            msg.sender == rentalPropertiesContract,
+            "setMaintenanceReserveCap() can only be called through RentalProperties contract"
+        );
+        require(
+            _capAmount >= PropertyMaintenanceReserves[_tokenId],
+            "New Maintenance Reserve Cap should be greater than or equal to existing Reserve amount"
+        );
+        PropertyMaintenanceReserveCap[_tokenId] = _capAmount;
+        emit MaintenanceReserveCapUpdated(_tokenId, _capAmount);
+    }
+
 
     function restoreMaintenanceReserve(uint256 _tokenId) external payable {
         require(
