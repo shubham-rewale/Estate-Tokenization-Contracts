@@ -14,6 +14,26 @@ contract MockDAO is OwnableUpgradeable {
         Active,
         ExecutionPeriod
     }
+    //proposal Id
+    uint256 public proposalId; //* Note any proposer can propose same proposal twice , One thing we can improve here we can use some hash to create proposal Id (using proposal details) to detect same proposal . so that no two same proposal Id exists.
+    uint256 public votingDelay;
+    uint256 public votingPeriod;
+    address public propertyManager;
+
+    //events
+    event proposalInitiated(
+        uint256 proposalId,
+        uint256 presentBlockNumber,
+        uint256 votingWillStartAt,
+        uint256 votingWillEndAt
+    );
+    event voted(uint256 proposalId, uint8 vote, address voter);
+    event executed(uint256 proposalId);
+    //map each proposal with corresponding proposal id
+    mapping(uint256 => Proposal) public proposals;
+    //map each votings with corresponding proposal id
+    mapping(uint256 => Voting) public votings;
+
     struct Proposal {
         TimersUpgradeable.BlockNumber voteStart;
         TimersUpgradeable.BlockNumber voteEnd;
@@ -28,17 +48,6 @@ contract MockDAO is OwnableUpgradeable {
         uint64 abstain;
         mapping(bytes32 => bool) isVoted;
     }
-    //proposal Id
-    uint256 public proposalId; //* Note any proposer can propose same proposal twice , One thing we can improve here we can use some hash to create proposal Id (using proposal details) to detect same proposal . so that no two same proposal Id exists.
-    uint256 public votingDelay;
-    uint256 public votingPeriod;
-    address public propertyManager;
-    //map each proposal with corresponding proposal id
-    mapping(uint256 => Proposal) public proposals;
-    //map each votings with corresponding proposal id
-    mapping(uint256 => Voting) public votings;
-
-    //is voted already
 
     function initialize(
         uint256 _votingDelay,
@@ -65,7 +74,7 @@ contract MockDAO is OwnableUpgradeable {
         votingPeriod = _votingPeriod;
     }
 
-    //later need to change its access
+    //To set the property manager
     function setPropertyManager(address _propertyManager) public onlyOwner {
         require(
             _propertyManager != address(0),
@@ -84,9 +93,9 @@ contract MockDAO is OwnableUpgradeable {
             msg.sender == propertyManager,
             "Caller is not property manager"
         );
-        require(_amount > 0, "Amount should be greater than 0");
+        require(_amount != 0, "Amount should be greater than 0");
         require(
-            bytes(_proposalProof).length > 0,
+            bytes(_proposalProof).length != 0,
             "proposalProof cannot be empty"
         );
         require(_votersRootHash != bytes32(0), "Root hash cannot be empty");
@@ -188,6 +197,10 @@ contract MockDAO is OwnableUpgradeable {
         return result;
     }
 
+    function getCurrentBlock() public view returns (uint256 blockNumber) {
+        return block.number;
+    }
+
     function isVotingSuccesful(Voting storage _voting)
         internal
         view
@@ -195,18 +208,4 @@ contract MockDAO is OwnableUpgradeable {
     {
         return _voting.forVote + _voting.abstain > _voting.against;
     }
-
-    function getCurrentBlock() public view returns (uint256 blockNumber) {
-        return block.number;
-    }
-
-    //events
-    event proposalInitiated(
-        uint256 proposalId,
-        uint256 presentBlockNumber,
-        uint256 votingWillStartAt,
-        uint256 votingWillEndAt
-    );
-    event voted(uint256 proposalId, uint8 vote, address voter);
-    event executed(uint256 proposalId);
 }
