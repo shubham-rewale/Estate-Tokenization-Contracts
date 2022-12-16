@@ -66,7 +66,6 @@ contract RentalProperties is
     // tokenId => invvestorAddress => balance
     // mapping(uint256 => mapping(address => uint256)) shareHoldersRentIncomeBalances;
 
-
     function initialize(
         address _propertyTokenContract,
         address payable _maintenanceReserveContract,
@@ -115,17 +114,28 @@ contract RentalProperties is
         propertyManager = _propertyManager;
     }
 
-    function getPropertyStatus(uint256 _propertyTokenId) view external returns (string memory _propertyStatus, address _tenant, uint256 _rentalPeriod, uint256 _noOfCompletedDays, uint256 _dailyRent){
-        rentalPropertyDetails memory propertyDetails = rentalPropertyList[_propertyTokenId];
+    function getPropertyStatus(uint256 _propertyTokenId)
+        external
+        view
+        returns (
+            string memory _propertyStatus,
+            address _tenant,
+            uint256 _rentalPeriod,
+            uint256 _noOfCompletedDays,
+            uint256 _dailyRent
+        )
+    {
+        rentalPropertyDetails memory propertyDetails = rentalPropertyList[
+            _propertyTokenId
+        ];
         require(propertyDetails.listed == true, "Property Details Not Found");
-        if (propertyDetails.isOccupied == false){
+        if (propertyDetails.isOccupied == false) {
             _propertyStatus = "Property is currently vacant";
             _tenant = address(0);
             _rentalPeriod = 0;
             _noOfCompletedDays = 0;
             _dailyRent = 0;
-        }
-        else if (propertyDetails.isOccupied == true) {
+        } else if (propertyDetails.isOccupied == true) {
             _propertyStatus = "Property is currently occupied";
             _tenant = propertyDetails.tenant;
             _rentalPeriod = propertyDetails.currentRentalPeriodInDays;
@@ -134,7 +144,11 @@ contract RentalProperties is
         }
     }
 
-    function getPropertyRentDeposits(uint256 _propertyTokenId) view external returns(uint256 _propertyDeposits){
+    function getPropertyRentDeposits(uint256 _propertyTokenId)
+        external
+        view
+        returns (uint256 _propertyDeposits)
+    {
         _propertyDeposits = propertyRentDeposits[_propertyTokenId];
     }
 
@@ -156,11 +170,11 @@ contract RentalProperties is
             "Property already registered for renting"
         );
         require(
-            _propertyMaintenanceReserveCap > 0,
+            _propertyMaintenanceReserveCap != 0,
             "Property Maintenance Reserve should be more than zero"
         );
         require(
-            _propertyVacancyReserveCap > 0,
+            _propertyVacancyReserveCap != 0,
             "Property Vacancy Reserve should be more than zero"
         );
         maintenanceReserve.setMaintenanceReserveCap(
@@ -190,7 +204,7 @@ contract RentalProperties is
         uint256 _newMaintenanceReserveCapAmount,
         uint256 _newVacancyReserveCapAmount
     ) external onlyPropertyManager {
-        if (_newMaintenanceReserveCapAmount > 0) {
+        if (_newMaintenanceReserveCapAmount != 0) {
             rentalPropertyList[_propertyTokenId]
                 .propertyMaintenanceReserveCap = _newMaintenanceReserveCapAmount;
             maintenanceReserve.setMaintenanceReserveCap(
@@ -198,7 +212,7 @@ contract RentalProperties is
                 _newMaintenanceReserveCapAmount
             );
         }
-        if (_newVacancyReserveCapAmount > 0) {
+        if (_newVacancyReserveCapAmount != 0) {
             rentalPropertyList[_propertyTokenId]
                 .propertyVacancyReserveCap = _newVacancyReserveCapAmount;
             vacancyReserve.setVacancyReserveCap(
@@ -225,14 +239,14 @@ contract RentalProperties is
         );
         require(_tenant != address(0), "Provide Valid Tenant address");
         require(
-            msg.value > 0,
+            msg.value != 0,
             "Please deposite rent for the whole month while initiating rental period"
         );
         uint256 remainingRentAmount = msg.value;
         uint256 maintenanceReserveDeficit;
         uint256 vacancyReserveDeficit;
         if (
-            _amountTowardsMaintenanceReserve > 0 &&
+            _amountTowardsMaintenanceReserve != 0 &&
             _amountTowardsMaintenanceReserve <= remainingRentAmount
         ) {
             (, , maintenanceReserveDeficit) = maintenanceReserve
@@ -247,7 +261,7 @@ contract RentalProperties is
             remainingRentAmount -= maintenanceReserveDeficit;
         }
         if (
-            _amountTowardsVacancyReserve > 0 &&
+            _amountTowardsVacancyReserve != 0 &&
             _amountTowardsVacancyReserve <= remainingRentAmount
         ) {
             (, , vacancyReserveDeficit) = vacancyReserve.checkVacancyReserve(
@@ -306,7 +320,7 @@ contract RentalProperties is
                 propertyRentDeposits[_propertyTokenId],
             "Not enough deposits to distribute the rent"
         );
-        if (rentalPropertyList[_propertyTokenId].rentCycleCounter > 0) {
+        if (rentalPropertyList[_propertyTokenId].rentCycleCounter != 0) {
             require(
                 rentalPropertyList[_propertyTokenId].rentalStartTimestamp +
                     (24 * 60 * 60) *
@@ -396,7 +410,7 @@ contract RentalProperties is
     //         "Property is not listed for the rental process"
     //     );
     //     require(
-    //         shareHoldersRentIncomeBalances[_propertyTokenId][msg.sender] > 0,
+    //         shareHoldersRentIncomeBalances[_propertyTokenId][msg.sender] != 0,
     //         "Do not have any funds to withdraw"
     //     );
     //     uint256 amountToTransfer = shareHoldersRentIncomeBalances[
