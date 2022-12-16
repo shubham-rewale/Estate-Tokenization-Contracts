@@ -275,7 +275,6 @@ contract RentalProperties is
         );
         uint256 remainingDepositAmount = propertyRentDeposits[_propertyTokenId];
         address _tenant = rentalPropertyList[_propertyTokenId].tenant;
-        payable(_tenant).transfer(remainingDepositAmount);
         propertyRentDeposits[_propertyTokenId] = 0;
         rentalPropertyDetails
             storage _rentalPropertyDetails = rentalPropertyList[
@@ -287,6 +286,7 @@ contract RentalProperties is
         _rentalPropertyDetails.currentRentalPeriodInDays = 0;
         _rentalPropertyDetails.dailyRentAmountForThisRentalPeriod = 0;
         _rentalPropertyDetails.rentCycleCounter = 0;
+        payable(_tenant).transfer(remainingDepositAmount);
         emit RentalPeriodTerminated(
             _propertyTokenId,
             _tenant,
