@@ -1,28 +1,34 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.17;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/TimersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
-// import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
 
+///@title A DAO contract
+///@notice Use this contract create a proposal, vote & executed.After execution of a successful proposal, property manager will receive the desired amount from maintenance reserve.
 contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
     using SafeCastUpgradeable for uint256;
     using TimersUpgradeable for TimersUpgradeable.BlockNumber;
+    ///@notice Defined a proposal state
     enum ProposalState {
         Pending,
         Active,
         ExecutionPeriod
     }
-    //proposal Id
-    uint256 public proposalId; //* Note any proposer can propose same proposal twice , One thing we can improve here we can use some hash to create proposal Id (using proposal details) to detect same proposal . so that no two same proposal Id exists.
+    ///@notice unique proposal id representing each proposal
+    uint256 public proposalId;
+    ///@dev Time delay (in block numbers) between any proposal creation and start of voting for it.
     uint256 public votingDelay;
+    ///@dev Time (in block number) for voting duration of any proposal
     uint256 public votingPeriod;
+    ///@notice Address of the property manager
     address public propertyManager;
+    ///@dev Address of the Rent contract . In which reserves are maintained
     address public Rent;
 
-    //structs
+    ///@dev Describing a proposal structure
     struct Proposal {
         TimersUpgradeable.BlockNumber voteStart;
         TimersUpgradeable.BlockNumber voteEnd;
@@ -31,7 +37,7 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         bytes32 votersRootHash;
         string proposalProof;
     }
-
+    ///@dev Describing voting for a proposal
     struct Voting {
         uint64 forVote;
         uint64 against;
@@ -39,7 +45,7 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         mapping(bytes32 => bool) isVoted;
     }
 
-    //events
+    ///@dev Event to notify a proposal creation.
     event proposalInitiated(
         uint256 proposalId,
         uint256 tokenId,
@@ -47,18 +53,25 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         uint256 votingWillStartAt,
         uint256 votingWillEndAt
     );
+    ///@dev To notify a voting for a proposal
     event voted(uint256 proposalId, uint256 vote, address voter);
+    ///@dev To notify execution of a proposal
     event executed(uint256 proposalId);
-    //map each proposal with corresponding proposal id
+
+    ///@dev Collection of proposals. Unique proposalId representing the corresponding proposal.
     mapping(uint256 => Proposal) public proposals;
-    //map each votings with corresponding proposal id
+    ///@dev voting collection for each proposal . Proposal id representing its voting information
     mapping(uint256 => Voting) public votings;
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
+    ///@custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
+    ///@dev initialization of this contract
+    ///@param _votingDelay Representing the votingDelay
+    ///@param _votingPeriod Representing the votingPeriod
+    ///@param _propertyManager Address of the property manager
     function initialize(
         uint256 _votingDelay,
         uint256 _votingPeriod,
@@ -71,13 +84,9 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         Rent = 0x8376aED6bf8E66a20DD8c6AFD8C9B765cd20a377;
     }
 
-    /**
-    @dev votingDelay, in number of block, between the proposal is created and the vote starts. This can be increased to
-    leave time for users to buy voting power, before the voting of a proposal starts.
-    @dev votingPeriod in number of blocks, between the vote start and vote ends.
-    The {votingDelay} can delay the start of the vote. This must be considered when setting the voting
-    duration compared to the voting delay.
-     */
+    ///@param _votingDelay, in number of block, between the proposal is created and the vote starts. This can be increased to leave time for users to buy voting power, before the voting of a proposal starts.
+    ///@param _votingPeriod in number of blocks, between the vote start and vote ends.The {votingDelay} can delay the start of the vote. This must be considered when setting the voting duration compared to the voting delay.
+    ///@dev Owner can call this function To change voting delay and voting period.
     function setVotingDelayAndPeriod(
         uint256 _votingDelay,
         uint256 _votingPeriod
@@ -86,7 +95,8 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         votingPeriod = _votingPeriod;
     }
 
-    //To set the property manager
+    ///@dev Owner call this function to change the property manager
+    ///@param _propertyManager Address of the new property manager
     function setPropertyManager(address _propertyManager) public onlyOwner {
         require(
             _propertyManager != address(0),
@@ -95,7 +105,8 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         propertyManager = _propertyManager;
     }
 
-    //get proposal state
+    ///@dev Call this function to get information about proposal state.
+    ///@param _proposalId Id of the proposal.
     function getProposalState(uint256 _proposalId)
         public
         view
@@ -120,7 +131,11 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         }
     }
 
-    //need to validate
+    ///@notice Call this function to make a proposal .Currently only property manager can call this function.
+    ///@param _tokenId tokenID representing the property
+    ///@param _amount Requested Amount form reserve
+    ///@param _proposalProof Any external link for proposal proof
+    ///@param _votersRootHash property owners root hash at the time of proposal creation.
     function propose(
         uint256 _tokenId,
         uint256 _amount,
@@ -157,11 +172,10 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         );
     }
 
-    /**
-    @dev _vote 0 -> Against
-    _vote 1-> For
-    _vote 2 -> Abstain
-    */
+    ///@dev voters (owners of the property) can call this function to vote for a certain proposal
+    ///@param _proposalId Id Representing the proposal
+    ///@param _vote 0 -> Against , 1-> For, 2 -> Abstain
+    ///@param _voterMarkleProof markle proof for voter (owner of the property)
     function vote(
         uint256 _proposalId,
         uint8 _vote,
@@ -197,8 +211,9 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         emit voted(_proposalId, _vote, msg.sender);
     }
 
-    //execute the proposal
-    //need to update who can access this function
+    ///@dev Owner call this function to execute a the proposal after voting period is over for that proposal
+    ///@param _proposalId Id Representing the proposal
+    ///@dev If voting is successful, then the property manager will get the desired amount transferred to his account from reserve contract
     function execute(uint256 _proposalId)
         external
         onlyOwner
@@ -209,8 +224,8 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
             "Proposal is not in Execution state"
         );
 
-        result = isVotingSuccesful(votings[_proposalId]);
-        bool isTransaferSuccessful;
+        result = isVotingSuccessful(_proposalId);
+        bool isTransferSuccessful;
         if (result) {
             bytes memory payload = abi.encodeWithSignature(
                 "withdrawFromMaintenanceReserve(uint256,uint256,address)",
@@ -218,11 +233,11 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
                 proposals[_proposalId].amount,
                 propertyManager
             );
-            (isTransaferSuccessful, ) = Rent.call{value: 0}(payload);
+            (isTransferSuccessful, ) = Rent.call{value: 0}(payload);
         }
 
         require(
-            !(result && !isTransaferSuccessful),
+            !(result && !isTransferSuccessful),
             "send to property manager failed"
         );
         delete proposals[_proposalId];
@@ -231,17 +246,21 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         return result;
     }
 
+    ///@dev for development purpose to get the current block number . Might delete later
     function getCurrentBlock() external view returns (uint256 blockNumber) {
         return block.number;
     }
 
-    function isVotingSuccesful(Voting storage _voting)
+    ///@dev to get the result of a voting
+    function isVotingSuccessful(uint256 _proposalId)
         internal
         view
         returns (bool result)
     {
-        return _voting.forVote + _voting.abstain > _voting.against;
+        Voting storage voting = votings[_proposalId];
+        return voting.forVote + voting.abstain > voting.against;
     }
 
+    // Need to add this function because of UUPS proxy
     function _authorizeUpgrade(address) internal override onlyOwner {}
 }
