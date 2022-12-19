@@ -1,16 +1,14 @@
 const { ethers, upgrades } = require("hardhat");
 
 async function main() {
+  const [deployer] = await ethers.getSigners();
   const MockDAO = await ethers.getContractFactory("MockDAO");
-
+  console.log("Deploying from account ", deployer.address);
   const mockDAO = await upgrades.deployProxy(
     MockDAO,
-    [
-      5,
-      20,
-      "0x0c33da77e19deba12d78c1001718ab4f6997fae0b64a2a81651cb902e1296e28",
-    ],
-    { initializer: "initialize" }
+    [5, 20, deployer.address],
+    { initializer: "initialize" },
+    { kind: "uups" }
   );
   // this deploy proxy first time will deploy 3 contracts .a) ProxyAdmin , b) proxy ,c) implementation contract
   // if we try to deploy it again the only the proxy contract will get deployed(means proxy contract address will be change)
