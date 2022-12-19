@@ -2,11 +2,12 @@
 pragma solidity ^0.8.13;
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/TimersUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 // import "@openzeppelin/contracts-upgradeable/token/ERC1155/IERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
 
-contract MockDAO is OwnableUpgradeable {
+contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
     using SafeCastUpgradeable for uint256;
     using TimersUpgradeable for TimersUpgradeable.BlockNumber;
     enum ProposalState {
@@ -19,26 +20,15 @@ contract MockDAO is OwnableUpgradeable {
     uint256 public votingDelay;
     uint256 public votingPeriod;
     address public propertyManager;
+    address public Rent;
 
-    //events
-    event proposalInitiated(
-        uint256 proposalId,
-        uint256 presentBlockNumber,
-        uint256 votingWillStartAt,
-        uint256 votingWillEndAt
-    );
-    event voted(uint256 proposalId, uint8 vote, address voter);
-    event executed(uint256 proposalId);
-    //map each proposal with corresponding proposal id
-    mapping(uint256 => Proposal) public proposals;
-    //map each votings with corresponding proposal id
-    mapping(uint256 => Voting) public votings;
-
+    //structs
     struct Proposal {
         TimersUpgradeable.BlockNumber voteStart;
         TimersUpgradeable.BlockNumber voteEnd;
-        bytes32 votersRootHash;
+        uint256 tokenId;
         uint256 amount;
+        bytes32 votersRootHash;
         string proposalProof;
     }
 
@@ -49,14 +39,36 @@ contract MockDAO is OwnableUpgradeable {
         mapping(bytes32 => bool) isVoted;
     }
 
+    //events
+    event proposalInitiated(
+        uint256 proposalId,
+        uint256 tokenId,
+        uint256 presentBlockNumber,
+        uint256 votingWillStartAt,
+        uint256 votingWillEndAt
+    );
+    event voted(uint256 proposalId, uint256 vote, address voter);
+    event executed(uint256 proposalId);
+    //map each proposal with corresponding proposal id
+    mapping(uint256 => Proposal) public proposals;
+    //map each votings with corresponding proposal id
+    mapping(uint256 => Voting) public votings;
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         uint256 _votingDelay,
         uint256 _votingPeriod,
         address _propertyManager
     ) public initializer {
         __Ownable_init();
+        __UUPSUpgradeable_init();
         setVotingDelayAndPeriod(_votingDelay, _votingPeriod);
         setPropertyManager(_propertyManager);
+        Rent = 0x8376aED6bf8E66a20DD8c6AFD8C9B765cd20a377;
     }
 
     /**
@@ -69,7 +81,7 @@ contract MockDAO is OwnableUpgradeable {
     function setVotingDelayAndPeriod(
         uint256 _votingDelay,
         uint256 _votingPeriod
-    ) internal {
+    ) public onlyOwner {
         votingDelay = _votingDelay;
         votingPeriod = _votingPeriod;
     }
@@ -81,35 +93,6 @@ contract MockDAO is OwnableUpgradeable {
             "property manager address cannot be zero"
         );
         propertyManager = _propertyManager;
-    }
-
-    //need to validate
-    function propose(
-        uint256 _amount,
-        string calldata _proposalProof,
-        bytes32 _votersRootHash
-    ) public {
-        require(
-            msg.sender == propertyManager,
-            "Caller is not property manager"
-        );
-        require(_amount != 0, "Amount should be greater than 0");
-        require(
-            bytes(_proposalProof).length != 0,
-            "proposalProof cannot be empty"
-        );
-        require(_votersRootHash != bytes32(0), "Root hash cannot be empty");
-        proposals[proposalId].amount = _amount;
-        proposals[proposalId].proposalProof = _proposalProof;
-        proposals[proposalId].votersRootHash = _votersRootHash;
-        uint64 start = block.number.toUint64() + votingDelay.toUint64();
-        uint64 deadline = start + votingPeriod.toUint64();
-        proposals[proposalId].voteStart.setDeadline(start);
-        proposals[proposalId].voteEnd.setDeadline(deadline);
-        //increment the proposalId
-        proposalId++;
-        //emit events
-        emit proposalInitiated(proposalId - 1, block.number, start, deadline);
     }
 
     //get proposal state
@@ -137,6 +120,43 @@ contract MockDAO is OwnableUpgradeable {
         }
     }
 
+    //need to validate
+    function propose(
+        uint256 _tokenId,
+        uint256 _amount,
+        string calldata _proposalProof,
+        bytes32 _votersRootHash
+    ) external {
+        require(
+            msg.sender == propertyManager,
+            "Caller is not property manager"
+        );
+        require(_amount != 0, "Amount should be greater than 0");
+        require(
+            bytes(_proposalProof).length != 0,
+            "proposalProof cannot be empty"
+        );
+        require(_votersRootHash != bytes32(0), "Root hash cannot be empty");
+        proposals[proposalId].tokenId = _tokenId;
+        proposals[proposalId].amount = _amount;
+        proposals[proposalId].proposalProof = _proposalProof;
+        proposals[proposalId].votersRootHash = _votersRootHash;
+        uint64 start = block.number.toUint64() + votingDelay.toUint64();
+        uint64 deadline = start + votingPeriod.toUint64();
+        proposals[proposalId].voteStart.setDeadline(start);
+        proposals[proposalId].voteEnd.setDeadline(deadline);
+        //increment the proposalId
+        proposalId++;
+        //emit events
+        emit proposalInitiated(
+            proposalId - 1,
+            _tokenId,
+            block.number,
+            start,
+            deadline
+        );
+    }
+
     /**
     @dev _vote 0 -> Against
     _vote 1-> For
@@ -146,7 +166,7 @@ contract MockDAO is OwnableUpgradeable {
         uint256 _proposalId,
         uint8 _vote,
         bytes32[] memory _voterMarkleProof
-    ) public {
+    ) external {
         require(
             MerkleProofUpgradeable.verify(
                 _voterMarkleProof,
@@ -180,32 +200,43 @@ contract MockDAO is OwnableUpgradeable {
     //execute the proposal
     //need to update who can access this function
     function execute(uint256 _proposalId)
-        public
+        external
         onlyOwner
-        returns (bool success)
+        returns (bool result)
     {
         require(
             getProposalState(_proposalId) == ProposalState.ExecutionPeriod,
             "Proposal is not in Execution state"
         );
 
-        bool result = isVotingSuccesful(votings[_proposalId]);
-
+        result = isVotingSuccesful(votings[_proposalId]);
+        if (result) {
+            bytes memory payload = abi.encodeWithSignature(
+                "withdrawFromMaintenanceReserve(uint256,uint256,address)",
+                proposals[_proposalId].tokenId,
+                proposals[_proposalId].amount,
+                propertyManager
+            );
+            (bool success, ) = Rent.call{value: 0}(payload);
+            require(success, "send to property manager failed");
+        }
         delete proposals[_proposalId];
         delete votings[_proposalId];
         emit executed(_proposalId);
         return result;
     }
 
-    function getCurrentBlock() public view returns (uint256 blockNumber) {
+    function getCurrentBlock() external view returns (uint256 blockNumber) {
         return block.number;
     }
 
     function isVotingSuccesful(Voting storage _voting)
         internal
         view
-        returns (bool success)
+        returns (bool result)
     {
         return _voting.forVote + _voting.abstain > _voting.against;
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 }
