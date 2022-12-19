@@ -210,6 +210,7 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         );
 
         result = isVotingSuccesful(votings[_proposalId]);
+        bool isTransaferSuccessful;
         if (result) {
             bytes memory payload = abi.encodeWithSignature(
                 "withdrawFromMaintenanceReserve(uint256,uint256,address)",
@@ -217,9 +218,13 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
                 proposals[_proposalId].amount,
                 propertyManager
             );
-            (bool success, ) = Rent.call{value: 0}(payload);
-            require(success, "send to property manager failed");
+            (isTransaferSuccessful, ) = Rent.call{value: 0}(payload);
         }
+
+        require(
+            !(result && !isTransaferSuccessful),
+            "send to property manager failed"
+        );
         delete proposals[_proposalId];
         delete votings[_proposalId];
         emit executed(_proposalId);
