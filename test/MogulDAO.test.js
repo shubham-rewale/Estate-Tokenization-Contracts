@@ -28,14 +28,25 @@ describe("Mogul DAO ", function () {
     const owners = [owner1.address, owner2.address, owner3.address];
     mogulDAOMarkleTree = new MogulDAOMarkleTree(owners);
     MockDAO = await ethers.getContractFactory("MockDAO");
-
-    /** Deploy the reserve contract first */
     MockReserveContract = await ethers.getContractFactory(
       "MockReserveContract"
     );
+
+    //Deploy the DAO contract
+    mockDAO = await upgrades.deployProxy(
+      MockDAO,
+      [votingDelay, votingPeriod, propertyManager.address],
+      {
+        initializer: "initialize",
+      },
+      { kind: "uups" }
+    );
+    await mockDAO.deployed();
+
+    /** Deploy the reserve contract  */
     mockReserveContract = await upgrades.deployProxy(
       MockReserveContract,
-      [],
+      [mockDAO.address],
       { initializer: "initialize" },
       {
         kind: "uups",
@@ -49,41 +60,34 @@ describe("Mogul DAO ", function () {
       value: ethers.utils.parseEther("1.0"),
     });
 
-    //Deploy the DAO contract
-    mockDAO = await upgrades.deployProxy(
-      MockDAO,
-      [
-        votingDelay,
-        votingPeriod,
-        propertyManager.address,
-        mockReserveContract.address,
-      ],
-      {
-        initializer: "initialize",
-      },
-      { kind: "uups" }
-    );
-
-    await mockDAO.deployed();
+    //set the reserve contract address in the DAO contract
+    await mockDAO.setResrveContractAddress(mockReserveContract.address);
   });
   it("Deployer should be the owner of DAO the contract", async () => {
     expect(await mockDAO.owner()).to.equal(deployer.address);
   });
 
-  it("Reserve contract should have some balance", async () => {
+  it("Reserve contract should have balance that has sent to it", async () => {
     expect(await mockReserveContract.balanceOf()).to.equal(
       ethers.utils.parseEther("1.0")
     );
   });
 
+  it("Only DAO contract can call withdrawFromMaintenanceReserve to forward funds", async () => {
+    await expect(
+      mockReserveContract.withdrawFromMaintenanceReserve(
+        0,
+        1000,
+        propertyManager.address
+      )
+    ).to.be.revertedWith(
+      "Only DAO contract can call withdrawFromMaintenanceReserve"
+    );
+  });
+
   it("Should not be call initialize after contract deployment", async () => {
     await expect(
-      mockDAO.initialize(
-        votingDelay,
-        votingPeriod,
-        propertyManager.address,
-        mockReserveContract.address
-      )
+      mockDAO.initialize(votingDelay, votingPeriod, propertyManager.address)
     ).to.be.revertedWith("Initializable: contract is already initialized");
   });
 
