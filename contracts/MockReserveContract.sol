@@ -5,8 +5,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract MockReserveContract is OwnableUpgradeable, UUPSUpgradeable {
-    function initialize() public initializer {
+    address public DAOContract;
+
+    function initialize(address _dAOContractAddress) public initializer {
         __Ownable_init();
+        DAOContract = _dAOContractAddress;
     }
 
     function balanceOf() public view returns (uint256 balance) {
@@ -22,6 +25,10 @@ contract MockReserveContract is OwnableUpgradeable, UUPSUpgradeable {
         uint256 _amountToWithdraw,
         address payable _recepientAddr
     ) public {
+        require(
+            msg.sender == DAOContract,
+            "Only DAO contract can call withdrawFromMaintenanceReserve"
+        );
         _recepientAddr.transfer(_amountToWithdraw);
     }
 
