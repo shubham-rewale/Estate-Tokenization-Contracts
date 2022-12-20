@@ -12,28 +12,33 @@
 ## **Functions**
 
 ```
-function initialize(uint256 _votingDelay,uint256 _votingPeriod,bytes32 _proposersRootHash) public initializer{}
+ function initialize(
+        uint256 _votingDelay,
+        uint256 _votingPeriod,
+        address _propertyManager,
+        address _reserveContractAddress
+    ) public initializer {}
 ```
 
 To initialize the DAO contract
 
 - \_votingDelay = Time delay(in blocks) to start voting for any proposal from it's initialization
 - \_votingPeriod = Time (in blocks) for voting period for any proposal .
-- \_proposersRootHash = proposers root hash . Have access to make propose
+- \_propertyManager = property manager address
 
 ```
 function propose(
+        uint256 _tokenId,
         uint256 _amount,
         string calldata _proposalProof,
-        bytes32 _votersRootHash,
-        bytes32[] memory _proposerMarkleProof
-    ) public {}
+        bytes32 _votersRootHash
+    ) external {}
 ```
 
+- \_tokenId = property token Id
 - \_amount = Amount required to grant
 - \_proposalProof = Any link for proposal proof
-- \_\_votersRootHash = all voters root hash for a particular proposal
-- \_proposerMarkleProof = function caller markle proof
+- \_votersRootHash = all voters root hash for a particular proposal
 
 ```
 function vote(
