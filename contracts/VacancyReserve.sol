@@ -1,10 +1,11 @@
 //SPDX-License-Identifier: UNLICENSE
 pragma solidity ^0.8.9;
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract VacancyReserve is Initializable, OwnableUpgradeable {
+contract VacancyReserve is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     address rentalPropertiesContract;
     address propertyManager;
     address DAOContract;
@@ -24,6 +25,10 @@ contract VacancyReserve is Initializable, OwnableUpgradeable {
     // tokenId => vacancyReserve
     mapping(uint256 => uint256) PropertyVacancyReserves;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
 
     function initialize(address _propertyManager) external initializer {
         require(
@@ -31,8 +36,11 @@ contract VacancyReserve is Initializable, OwnableUpgradeable {
             "Provide Valid Property Manager Address"
         );
         __Ownable_init();
+        __UUPSUpgradeable_init();
         propertyManager = _propertyManager;
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     modifier onlypropertyManager() {
         require(

@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 
 // Uncomment this line to use console.log
 // import "hardhat/console.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -13,6 +14,7 @@ import "./VacancyReserve.sol";
 
 contract RentalProperties is
     Initializable,
+    UUPSUpgradeable,
     OwnableUpgradeable,
     ReentrancyGuardUpgradeable
 {
@@ -65,6 +67,11 @@ contract RentalProperties is
 
     // tokenId => invvestorAddress => balance
     // mapping(uint256 => mapping(address => uint256)) shareHoldersRentIncomeBalances;
+    
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
 
     function initialize(
         address _propertyTokenContract,
@@ -89,11 +96,15 @@ contract RentalProperties is
             "Provide valid Property Manager address"
         );
         __Ownable_init();
+        __UUPSUpgradeable_init();
         token = Token(_propertyTokenContract);
         maintenanceReserve = MaintenanceReserve(_maintenanceReserveContract);
         vacancyReserve = VacancyReserve(_vacancyReserveContract);
         propertyManager = _propertyManager;
     }
+
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     modifier onlyPropertyManager() {
         require(
