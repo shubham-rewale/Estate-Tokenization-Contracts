@@ -1,4 +1,5 @@
 /** @type import('hardhat/config').HardhatUserConfig */
+require("@nomiclabs/hardhat-waffle");
 require("@nomicfoundation/hardhat-toolbox");
 require("@openzeppelin/hardhat-upgrades");
 require("dotenv").config({ path: "./.env" });

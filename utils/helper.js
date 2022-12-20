@@ -1,6 +1,9 @@
+const { waffle } = require("hardhat");
+const provider = waffle.provider;
+
 const moveBlocks = async (number) => {
   for (let i = 0; i < number; i++) {
-    await network.provider.send("evm_mine");
+    await provider.send("evm_mine");
   }
 };
 
