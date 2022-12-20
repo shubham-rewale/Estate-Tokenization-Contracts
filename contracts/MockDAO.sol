@@ -25,8 +25,8 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
     uint256 public votingPeriod;
     ///@notice Address of the property manager
     address public propertyManager;
-    ///@dev Address of the Rent contract . In which reserves are maintained
-    address public Rent;
+    ///@dev Address of the Reserve contract . In which reserves are maintained
+    address public ReserveContractAddress;
 
     ///@dev Describing a proposal structure
     struct Proposal {
@@ -75,13 +75,14 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
     function initialize(
         uint256 _votingDelay,
         uint256 _votingPeriod,
-        address _propertyManager
+        address _propertyManager,
+        address _reserveContractAddress
     ) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
         setVotingDelayAndPeriod(_votingDelay, _votingPeriod);
         setPropertyManager(_propertyManager);
-        Rent = 0x8376aED6bf8E66a20DD8c6AFD8C9B765cd20a377;
+        ReserveContractAddress = _reserveContractAddress;
     }
 
     ///@param _votingDelay, in number of block, between the proposal is created and the vote starts. This can be increased to leave time for users to buy voting power, before the voting of a proposal starts.
@@ -233,7 +234,9 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
                 proposals[_proposalId].amount,
                 propertyManager
             );
-            (isTransferSuccessful, ) = Rent.call{value: 0}(payload);
+            (isTransferSuccessful, ) = ReserveContractAddress.call{value: 0}(
+                payload
+            );
         }
 
         require(
