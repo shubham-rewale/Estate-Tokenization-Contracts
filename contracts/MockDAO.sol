@@ -75,14 +75,12 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
     function initialize(
         uint256 _votingDelay,
         uint256 _votingPeriod,
-        address _propertyManager,
-        address _reserveContractAddress
+        address _propertyManager
     ) public initializer {
         __Ownable_init();
         __UUPSUpgradeable_init();
         setVotingDelayAndPeriod(_votingDelay, _votingPeriod);
         setPropertyManager(_propertyManager);
-        ReserveContractAddress = _reserveContractAddress;
     }
 
     ///@param _votingDelay, in number of block, between the proposal is created and the vote starts. This can be increased to leave time for users to buy voting power, before the voting of a proposal starts.
@@ -130,6 +128,19 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         else {
             return ProposalState.ExecutionPeriod;
         }
+    }
+
+    ///@dev Owner can call this function to set Reserve contract address
+    ///@param _reserveContractAddress Reserve contract address
+    function setResrveContractAddress(address _reserveContractAddress)
+        external
+        onlyOwner
+    {
+        require(
+            _reserveContractAddress != address(0),
+            "Reserve Contract address can be empty"
+        );
+        ReserveContractAddress = _reserveContractAddress;
     }
 
     ///@notice Call this function to make a proposal .Currently only property manager can call this function.
@@ -224,7 +235,10 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
             getProposalState(_proposalId) == ProposalState.ExecutionPeriod,
             "Proposal is not in Execution state"
         );
-
+        require(
+            ReserveContractAddress != address(0),
+            "Resserve contract address cannot be empty"
+        );
         result = isVotingSuccessful(_proposalId);
         bool isTransferSuccessful;
         if (result) {
