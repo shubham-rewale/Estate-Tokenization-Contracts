@@ -269,7 +269,7 @@ contract RentalProperties is
             maintenanceReserve.restoreMaintenanceReserve{
                 value: _amountTowardsMaintenanceReserve
             }(_propertyTokenId);
-            remainingRentAmount -= maintenanceReserveDeficit;
+            remainingRentAmount -= _amountTowardsMaintenanceReserve;
         }
         if (
             _amountTowardsVacancyReserve != 0 &&
@@ -285,7 +285,7 @@ contract RentalProperties is
             vacancyReserve.restoreVacancyReserve{
                 value: _amountTowardsVacancyReserve
             }(_propertyTokenId);
-            remainingRentAmount -= vacancyReserveDeficit;
+            remainingRentAmount -= _amountTowardsVacancyReserve;
         }
         uint256 _dailyRentAmountForThisRentalPeriod = remainingRentAmount /
             _rentalPeriodInDays;
