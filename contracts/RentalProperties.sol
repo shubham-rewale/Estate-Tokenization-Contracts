@@ -67,7 +67,7 @@ contract RentalProperties is
 
     // tokenId => invvestorAddress => balance
     // mapping(uint256 => mapping(address => uint256)) shareHoldersRentIncomeBalances;
-    
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -102,7 +102,6 @@ contract RentalProperties is
         vacancyReserve = VacancyReserve(_vacancyReserveContract);
         propertyManager = _propertyManager;
     }
-
 
     function _authorizeUpgrade(address) internal override onlyOwner {}
 
@@ -256,10 +255,11 @@ contract RentalProperties is
         uint256 remainingRentAmount = msg.value;
         uint256 maintenanceReserveDeficit;
         uint256 vacancyReserveDeficit;
-        if (
-            _amountTowardsMaintenanceReserve != 0 &&
-            _amountTowardsMaintenanceReserve <= remainingRentAmount
-        ) {
+        if (_amountTowardsMaintenanceReserve != 0) {
+            require(
+                _amountTowardsMaintenanceReserve <= remainingRentAmount,
+                "Amount towards Maintenance Reserve should be less than Rent Amount"
+            );
             (, , maintenanceReserveDeficit) = maintenanceReserve
                 .checkMaintenanceReserve(_propertyTokenId);
             require(
@@ -271,10 +271,11 @@ contract RentalProperties is
             }(_propertyTokenId);
             remainingRentAmount -= _amountTowardsMaintenanceReserve;
         }
-        if (
-            _amountTowardsVacancyReserve != 0 &&
-            _amountTowardsVacancyReserve <= remainingRentAmount
-        ) {
+        if (_amountTowardsVacancyReserve != 0) {
+            require(
+                _amountTowardsVacancyReserve <= remainingRentAmount,
+                "Amount towards Vacancy Reserve should be less than Rent Amount"
+            );
             (, , vacancyReserveDeficit) = vacancyReserve.checkVacancyReserve(
                 _propertyTokenId
             );
@@ -316,7 +317,7 @@ contract RentalProperties is
     function distributeRentAmount(
         uint256 _propertyTokenId,
         address[] memory _ownerList
-    ) external onlyPropertyManager nonReentrant {
+    ) external payable onlyPropertyManager nonReentrant {
         require(
             rentalPropertyList[_propertyTokenId].listed == true,
             "Property is not listed for the rental process"
@@ -348,9 +349,9 @@ contract RentalProperties is
         );
         uint256 rentPerTokenShare = rentAmount / totalSupplyOfPropertyToken;
         uint256 balanceOfTheOwner;
-        uint256[] memory rentAmountPerOwner;
-        uint256 rentForAssert;
         uint256 ownerListLength = _ownerList.length;
+        uint256[] memory rentAmountPerOwner = new uint256[](ownerListLength);
+        uint256 rentForAssert;
         for (uint256 i = 0; i < ownerListLength; ) {
             balanceOfTheOwner = token.balanceOf(
                 _ownerList[i],

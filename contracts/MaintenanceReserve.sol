@@ -131,7 +131,7 @@ contract MaintenanceReserve is Initializable, UUPSUpgradeable, OwnableUpgradeabl
         );
         PropertyMaintenanceReserves[_tokenId] += msg.value;
         assert(
-            PropertyMaintenanceReserveCap[_tokenId] <=
+            PropertyMaintenanceReserveCap[_tokenId] >=
                 PropertyMaintenanceReserves[_tokenId]
         );
         emit FundsAddedToMaintenanceReserve(_tokenId, msg.value);
