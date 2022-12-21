@@ -53,6 +53,8 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         uint256 votingWillStartAt,
         uint256 votingWillEndAt
     );
+    ///@dev event to notify editing of a proposal
+    event proposalEdited(uint256 proposalId, uint256 tokenId);
     ///@dev To notify a voting for a proposal
     event voted(uint256 proposalId, uint256 vote, address voter);
     ///@dev To notify execution of a proposal
@@ -182,6 +184,45 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
             start,
             deadline
         );
+    }
+
+    ///@dev property manager can call this function to edit the proposal which are on pending state
+    ///@param _proposalId ProposalID referring that proposal that manager wants to modify
+    ///@param _tokenId updated tokenId
+    ///@param _amount updated amount
+    ///@param _proposalProof updated  proposal proof
+    ///@param _votersRootHash  updated voter root hash
+    function editProposal(
+        uint256 _proposalId,
+        uint256 _tokenId,
+        uint256 _amount,
+        string calldata _proposalProof,
+        bytes32 _votersRootHash
+    ) external {
+        require(
+            msg.sender == propertyManager,
+            "Caller is not property manager"
+        );
+        require(
+            getProposalState(_proposalId) == ProposalState.Pending,
+            "Proposal not in pending state"
+        );
+        require(_amount != 0, "Amount should be greater than 0");
+        require(
+            bytes(_proposalProof).length != 0,
+            "proposalProof cannot be empty"
+        );
+        require(_votersRootHash != bytes32(0), "Root hash cannot be empty");
+
+        Proposal storage proposal = proposals[_proposalId];
+
+        proposal.tokenId = _tokenId;
+        proposal.amount = _amount;
+        proposal.proposalProof = _proposalProof;
+        proposal.votersRootHash = _votersRootHash;
+
+        //emit the event
+        emit proposalEdited(_proposalId, _tokenId);
     }
 
     ///@dev voters (owners of the property) can call this function to vote for a certain proposal
