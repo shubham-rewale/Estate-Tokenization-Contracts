@@ -3,11 +3,24 @@
 **Table of Contents**
 <br>
 [Overview](#overview)<br>
+[Flow](#flow)<br>
 [Functions](#functions)<br>
 
 ## **Overview**
 
-- MockDAO.sol Implements the proposal,voting and execution functionality
+- This DAO contract helps to execute a proposal based on voting .
+
+## **Flow**
+
+- First property manager add a proposal using proposal function
+- After the voting delay that proposal will be in active state (means voting period is started for that proposal).
+- Property owners can then vote on that proposal using the proof of voting
+- After voting period the proposal will go in a execution state ,means voting is done for that proposal and waiting for DAO contract owner to execute that proposal.
+
+- Contract owner execute the proposal by calling execute function .If the voting is not successful for that proposal the then contract will just delete the proposal info and return false , and if the voting is successful the the DAO contract will call a reserve contract to transfer the propose amount to the manager and
+  delete proposal info from contract .
+
+- Note : If voting is successful and anything went wrong during transfer of amount from the reserve contract.,then the execute function will revert and doesn't clear proposal info . So that Owner can later call execute function for that proposal.
 
 ## **Functions**
 
