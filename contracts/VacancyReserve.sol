@@ -128,7 +128,7 @@ contract VacancyReserve is Initializable, UUPSUpgradeable, OwnableUpgradeable {
         );
         PropertyVacancyReserves[_tokenId] += msg.value;
         assert(
-            PropertyVacancyReserveCap[_tokenId] <=
+            PropertyVacancyReserveCap[_tokenId] >=
                 PropertyVacancyReserves[_tokenId]
         );
         emit FundsAddedToVacancyReserve(_tokenId, msg.value);
