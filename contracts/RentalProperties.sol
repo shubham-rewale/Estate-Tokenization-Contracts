@@ -42,6 +42,11 @@ contract RentalProperties is
         uint256 _rentalStartTimestamp,
         uint256 _rentPeriodInDays
     );
+    //  event RentalPeriodInitiated(
+    //     uint256 _rentalPropertyTokenId,
+    //     address _tenantAddress,
+    //     uint256 _rentPeriodInDays
+    // );
     event RentalPeriodTerminated(
         uint256 _rentalPropertyTokenId,
         address terminatedTenant,
@@ -306,6 +311,11 @@ contract RentalProperties is
             remainingRentAmount >=
                 _dailyRentAmountForThisRentalPeriod * _rentalPeriodInDays
         );
+        // emit RentalPeriodInitiated(
+        //     _propertyTokenId,
+        //     _tenant,
+        //     _rentalPeriodInDays
+        // );
         emit RentalPeriodInitiated(
             _propertyTokenId,
             _tenant,
@@ -336,7 +346,7 @@ contract RentalProperties is
             require(
                 rentalPropertyList[_propertyTokenId].rentalStartTimestamp +
                     (24 * 60 * 60) *
-                    rentalPropertyList[_propertyTokenId].rentCycleCounter >=
+                    rentalPropertyList[_propertyTokenId].rentCycleCounter <=
                     block.timestamp,
                 "Wait for the next rent distribution cycle"
             );
