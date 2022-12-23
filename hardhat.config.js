@@ -3,8 +3,18 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomicfoundation/hardhat-toolbox");
 require("@openzeppelin/hardhat-upgrades");
 require("dotenv").config({ path: "./.env" });
+
 module.exports = {
-  solidity: "0.8.17",
+  solidity: {
+    compilers: [
+      {
+        version: "0.8.9",
+      },
+      {
+        version: "0.8.17",
+      },
+    ],
+  },
   networks: {
     mumbai: {
       url: process.env.MUMBAI_URL || "",
