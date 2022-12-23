@@ -42,11 +42,7 @@ contract RentalProperties is
         uint256 _rentalStartTimestamp,
         uint256 _rentPeriodInDays
     );
-    //  event RentalPeriodInitiated(
-    //     uint256 _rentalPropertyTokenId,
-    //     address _tenantAddress,
-    //     uint256 _rentPeriodInDays
-    // );
+   
     event RentalPeriodTerminated(
         uint256 _rentalPropertyTokenId,
         address terminatedTenant,
@@ -311,11 +307,7 @@ contract RentalProperties is
             remainingRentAmount >=
                 _dailyRentAmountForThisRentalPeriod * _rentalPeriodInDays
         );
-        // emit RentalPeriodInitiated(
-        //     _propertyTokenId,
-        //     _tenant,
-        //     _rentalPeriodInDays
-        // );
+       
         emit RentalPeriodInitiated(
             _propertyTokenId,
             _tenant,
@@ -431,8 +423,7 @@ contract RentalProperties is
     }
 
     // function withdrawRentIncome(
-    //     uint256 _propertyTokenId,
-    //     bytes32[] memory proof
+    //     uint256 _propertyTokenId
     // ) external nonReentrant {
     //     require(
     //         rentalPropertyList[_propertyTokenId].listed == true,
