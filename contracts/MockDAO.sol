@@ -279,7 +279,7 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         );
         require(
             ReserveContractAddress != address(0),
-            "Resserve contract address cannot be empty"
+            "Invalid Resserve contract address"
         );
         result = isVotingSuccessful(_proposalId);
         bool isTransferSuccessful;
