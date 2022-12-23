@@ -5,7 +5,7 @@
 [Overview](#overview)<br>
 [Flow](#flow)<br>
 [Functions](#functions)<br>
-[Run Tests](#run test)<br>
+[RunTests](#runtest)<br>
 
 ## **Overview**
 
@@ -78,7 +78,7 @@ Only admin of this contract can call this function
 
 \_proposalId = proposal to be executed
 
-## **Run Tests**
+## **RunTests**
 
 - clone the repository
 
