@@ -5,6 +5,7 @@
 [Overview](#overview)<br>
 [Flow](#flow)<br>
 [Functions](#functions)<br>
+[Run Tests](#run test)<br>
 
 ## **Overview**
 
@@ -76,3 +77,29 @@ function execute(uint256 _proposalId)
 Only admin of this contract can call this function
 
 \_proposalId = proposal to be executed
+
+## **Run Tests**
+
+- clone the repository
+
+```
+https://github.com/shubham-rewale/Estate-Tokenization-Contracts.git
+```
+
+- change branch to dao
+
+```
+git switch dao
+```
+
+- Install Dependency
+
+```
+npm i
+```
+
+- Run test
+
+```
+npx hardhat test
+```
