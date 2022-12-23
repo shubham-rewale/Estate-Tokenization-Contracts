@@ -10,7 +10,7 @@ const provider = waffle.provider;
 const votingDelay = 10;
 const votingPeriod = 100;
 // const mogulDAOMarkleTree = new MogulDAOMarkleTree();
-describe("Mogul DAO ", function () {
+describe("Estate DAO ", function () {
   let deployer;
   let propertyManager;
   let owner1;
@@ -107,6 +107,46 @@ describe("Mogul DAO ", function () {
         .connect(propertyManager)
         .propose(tokenId, amount, proposalProof, ownersRootHash)
     ).to.emit(mockDAO, "proposalInitiated");
+  });
+
+  it("Property Manager should be able to edit proposal in its pending period", async () => {
+    //make a proposal
+    const tokenId = 0;
+    const amount = 1000;
+    const proposalProof = "Proposal proof";
+    const ownersRootHash = mogulDAOMarkleTree.getOwnersRootHash();
+    await expect(
+      mockDAO
+        .connect(propertyManager)
+        .propose(tokenId, amount, proposalProof, ownersRootHash)
+    ).to.emit(mockDAO, "proposalInitiated");
+
+    //try to edit the proposal from deployer account
+    await expect(
+      mockDAO.editProposal(
+        0,
+        tokenId,
+        amount + 100,
+        proposalProof,
+        ownersRootHash
+      ) //proposal ID will be 0 as this is the first proposal
+    ).to.be.revertedWith("Caller is not property manager");
+
+    //property manager should be able to edit the proposal
+    await expect(
+      mockDAO
+        .connect(propertyManager)
+        .editProposal(0, tokenId, amount + 100, proposalProof, ownersRootHash) //proposal ID will be 0 as this is the first proposal
+    ).to.emit(mockDAO, "proposalEdited");
+
+    //try to edit the proposal when it's in voting period
+    //move the blocks to get past of voting delay
+    await moveBlocks(votingDelay + 1);
+    await expect(
+      mockDAO
+        .connect(propertyManager)
+        .editProposal(0, tokenId, amount + 100, proposalProof, ownersRootHash) //proposal ID will be 0 as this is the first proposal
+    ).to.be.revertedWith("Proposal not in pending state");
   });
 
   it("Voters should wait for delay period before casting vote", async () => {

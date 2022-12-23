@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity >=0.8.9 <0.8.17;
+
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/TimersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -278,7 +279,7 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         );
         require(
             ReserveContractAddress != address(0),
-            "Resserve contract address cannot be empty"
+            "Invalid Resserve contract address"
         );
         result = isVotingSuccessful(_proposalId);
         bool isTransferSuccessful;
