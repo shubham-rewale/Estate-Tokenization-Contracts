@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity >=0.8.9 <0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract MockReserveContract is OwnableUpgradeable, UUPSUpgradeable {
+contract MaintenanceReserve is OwnableUpgradeable, UUPSUpgradeable {
     address public DAOContract;
 
     function initialize(address _dAOContractAddress) public initializer {
