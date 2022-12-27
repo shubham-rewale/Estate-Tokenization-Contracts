@@ -13,7 +13,9 @@
 
 ## **Flow**
 
-- First property manager add a proposal using proposal function
+-
+- First property manager add a proposal using proposal function. While Making an proposal property manager have to mention which reserve contract will involve in transfer of funds , when the proposal gets executed successfully.
+
 - After the voting delay that proposal will be in active state (means voting period is started for that proposal).
 - Property owners can then vote on that proposal using the proof of voting
 - After voting period the proposal will go in a execution state ,means voting is done for that proposal and waiting for DAO contract owner to execute that proposal.
@@ -41,25 +43,43 @@ To initialize the DAO contract
 - \_propertyManager = property manager address
 
 ```
+function setMaintenanceReserveAddress(address _maintenanceReserveAddress) external onlyOwner {}
+```
+
+Owner have to call this function to set the MaintenanceReserve contract address
+
+```
+function setVacancyReserveAddress(address _vacancyReserveAddress) external onlyOwner {}
+```
+
+Owner have to call this function to set the VacancyReserve contract address
+
+````
+
 function propose(
-        uint256 _tokenId,
-        uint256 _amount,
-        string calldata _proposalProof,
-        bytes32 _votersRootHash
-    ) external {}
+uint256 \_tokenId,
+uint256 \_amount,
+ReserveContracts \_withdrawFundsFrom,
+string calldata \_proposalProof,
+bytes32 \_votersRootHash
+) external {}
+
 ```
 
 - \_tokenId = property token Id
 - \_amount = Amount required to grant
+- \_withdrawFundsFrom = withdrawFundsFrom = 0 -> withdraw from MaintenanceReserve, \_withdrawFundsFrom = 1 -> withdraw from VacancyReserve
 - \_proposalProof = Any link for proposal proof
 - \_votersRootHash = all voters root hash for a particular proposal
 
 ```
+
 function vote(
-        uint256 _proposalId,
-        uint8 _vote,
-        bytes32[] memory _voterMarkleProof
-    ) public {
+uint256 \_proposalId,
+uint8 \_vote,
+bytes32[] memory \_voterMarkleProof
+) public {
+
 ```
 
 - \_proposalId = Proposal id that voters want to cast vote
@@ -67,11 +87,13 @@ function vote(
 - \_voterMarkleProof = voter markle proof
 
 ```
-function execute(uint256 _proposalId)
-        public
-        onlyOwner
-        returns (bool success)
-    {}
+
+function execute(uint256 \_proposalId)
+public
+onlyOwner
+returns (bool success)
+{}
+
 ```
 
 Only admin of this contract can call this function
@@ -83,23 +105,34 @@ Only admin of this contract can call this function
 - clone the repository
 
 ```
+
 https://github.com/shubham-rewale/Estate-Tokenization-Contracts.git
+
 ```
 
 - change branch to dao
 
 ```
+
 git switch dao
+
 ```
 
 - Install Dependency
 
 ```
+
 npm i
+
 ```
 
 - Run test
 
 ```
+
 npx hardhat test
+
 ```
+
+```
+````
