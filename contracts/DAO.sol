@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity >=0.8.9 <0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/TimersUpgradeable.sol";
@@ -26,8 +26,8 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
     uint256 public votingPeriod;
     ///@notice Address of the property manager
     address public propertyManager;
-    ///@dev Address of the Reserve contract . In which reserves are maintained
-    address public ReserveContractAddress;
+    ///@dev Address of the Maintenance Reserve contract . In which reserves are maintained
+    address public MaintenanceReserve;
 
     ///@dev Describing a proposal structure
     struct Proposal {
@@ -134,16 +134,16 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
     }
 
     ///@dev Owner can call this function to set Reserve contract address
-    ///@param _reserveContractAddress Reserve contract address
-    function setResrveContractAddress(address _reserveContractAddress)
+    ///@param _maintenanceReserveAddress Reserve contract address
+    function setMaintenanceReserveAddress(address _maintenanceReserveAddress)
         external
         onlyOwner
     {
         require(
-            _reserveContractAddress != address(0),
+            _maintenanceReserveAddress != address(0),
             "Reserve Contract address can be empty"
         );
-        ReserveContractAddress = _reserveContractAddress;
+        MaintenanceReserve = _maintenanceReserveAddress;
     }
 
     ///@notice Call this function to make a proposal .Currently only property manager can call this function.
@@ -278,7 +278,7 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
             "Proposal is not in Execution state"
         );
         require(
-            ReserveContractAddress != address(0),
+            MaintenanceReserve != address(0),
             "Invalid Resserve contract address"
         );
         result = isVotingSuccessful(_proposalId);
@@ -290,7 +290,7 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
                 proposals[_proposalId].amount,
                 propertyManager
             );
-            (isTransferSuccessful, ) = ReserveContractAddress.call{value: 0}(
+            (isTransferSuccessful, ) = MaintenanceReserve.call{value: 0}(
                 payload
             );
         }
