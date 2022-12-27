@@ -8,7 +8,7 @@ const helpers = require("@nomicfoundation/hardhat-network-helpers");
 require("dotenv").config();
 
 
-describe("MaintenanceReserve testcases", function () {
+describe("VacancyReserve testcases", function () {
   let propertyManager;
   let DAOContract;
   let mogulPlatformOwnerAddress;
@@ -101,82 +101,82 @@ describe("MaintenanceReserve testcases", function () {
   });
   describe("setPropertyManagerAddress function testcases",function(){
     it("Only owner should be able to set property manager address",async()=>{
-        await expect(maintenanceReserve.connect(unauthorizedUserAddress).setPropertyManagerAddress(unauthorizedUserAddress.address)).to.be.revertedWith("Ownable: caller is not the owner");
+        await expect(vacancyReserve.connect(unauthorizedUserAddress).setPropertyManagerAddress(unauthorizedUserAddress.address)).to.be.revertedWith("Ownable: caller is not the owner");
     });
     it("property manager address can't be zero address",async()=>{
-        await expect(maintenanceReserve.connect(mogulPlatformOwnerAddress).setPropertyManagerAddress(ethers.constants.AddressZero)).to.be.revertedWith("Provide Valid Property Manager Address");
+        await expect(vacancyReserve.connect(mogulPlatformOwnerAddress).setPropertyManagerAddress(ethers.constants.AddressZero)).to.be.revertedWith("Provide Valid Property Manager Address");
     });
 });
 describe("setRentalPropertiesContractAddr function testcases",function(){
     it("Only propertyManager should be able to set Rental Contract address",async()=>{
-        await expect(maintenanceReserve.connect(unauthorizedUserAddress).setRentalPropertiesContractAddr(unauthorizedUserAddress.address)).to.be.revertedWith("Caller is not the Property Manager");
+        await expect(vacancyReserve.connect(unauthorizedUserAddress).setRentalPropertiesContractAddr(unauthorizedUserAddress.address)).to.be.revertedWith("Caller is not the Property Manager");
     });
     it("rental contract address can't be zero address",async()=>{
-        await expect(maintenanceReserve.connect(propertyManager).setRentalPropertiesContractAddr(ethers.constants.AddressZero)).to.be.revertedWith("Provide Valid Rental Contract Address");
+        await expect(vacancyReserve.connect(propertyManager).setRentalPropertiesContractAddr(ethers.constants.AddressZero)).to.be.revertedWith("Provide Valid Rental Contract Address");
     });
 });
 describe("setDAOContractAddr function testcases",function(){
     it("Only propertyManager should be able to set DAO Contract address",async()=>{
-        await expect(maintenanceReserve.connect(unauthorizedUserAddress).setDAOContractAddr(unauthorizedUserAddress.address)).to.be.revertedWith("Caller is not the Property Manager");
+        await expect(vacancyReserve.connect(unauthorizedUserAddress).setDAOContractAddr(unauthorizedUserAddress.address)).to.be.revertedWith("Caller is not the Property Manager");
     });
     it("DAO contract address can't be zero address",async()=>{
-        await expect(maintenanceReserve.connect(propertyManager).setDAOContractAddr(ethers.constants.AddressZero)).to.be.revertedWith("Provide Valid DAO Contract Address");
+        await expect(vacancyReserve.connect(propertyManager).setDAOContractAddr(ethers.constants.AddressZero)).to.be.revertedWith("Provide Valid DAO Contract Address");
     });
 });
 describe("checkMaintenanceReserve function testcases",function(){
     it("Only propertyManager should be able to set DAO Contract address",async()=>{
-       const result= await maintenanceReserve.checkMaintenanceReserve(0);
+       const result= await vacancyReserve.checkVacancyReserve(0);
        expect(result[0]).to.equal(BigNumber.from("500000"));
        expect(result[1]).to.equal(BigNumber.from("250000"));
        expect(result[2]).to.equal(BigNumber.from("250000"));
     });  
 });
 describe("setMaintenanceReserveCap function testcases",function(){
-    it("Only RentalProperties contract should be able to set maintenance reserve cap",async()=>{
-        await expect(maintenanceReserve.connect(propertyManager).setMaintenanceReserveCap(0,2500000)).to.be.revertedWith("setMaintenanceReserveCap() can only be called through RentalProperties contract");
+    it("Only RentalProperties contract should be able to set vacancy reserve cap",async()=>{
+        await expect(vacancyReserve.connect(propertyManager).setVacancyReserveCap(0,2500000)).to.be.revertedWith("setVacancyReserveCap() can only be called through RentalProperties contract");
     });
     it("New Maintenance Reserve Cap should be greater than or equal to existing Reserve amount",async()=>{
-        await expect(rentalProperties.connect(propertyManager).updateReserveCapAmount(0,200000,0)).to.be.revertedWith("New Maintenance Reserve Cap should be greater than or equal to existing Reserve amount");
+        await expect(rentalProperties.connect(propertyManager).updateReserveCapAmount(0,0,200000)).to.be.revertedWith("New Vacancy Reserve Cap should be greater than or equal to existing Reserve amount");
     });
     it("Property manager should be able to update reserve cap amount",async()=>{
-        await rentalProperties.connect(propertyManager).updateReserveCapAmount(0,600000,0);
-        const result= await maintenanceReserve.checkMaintenanceReserve(0);
+        await rentalProperties.connect(propertyManager).updateReserveCapAmount(0,0,600000);
+        const result= await vacancyReserve.checkVacancyReserve(0);
        expect(result[0]).to.equal(BigNumber.from("600000"));
        expect(result[1]).to.equal(BigNumber.from("250000"));
        expect(result[2]).to.equal(BigNumber.from("350000"));
     });
 });
-describe("restoreMaintenanceReserve function testcases",function(){
-    it("It should be reverted with :- Maintenance Reserve for this Property already have enough Funds",async()=>{
-        await maintenanceReserve.connect(propertyManager).restoreMaintenanceReserve(0,{value:250000});
-        await expect(maintenanceReserve.connect(propertyManager).restoreMaintenanceReserve(0,{value:50000})).to.be.revertedWith("Maintenance Reserve for this Property already have enough Funds");
+describe("restoreVacancyReserve function testcases",function(){
+    it("It should be reverted with :- Vacancy Reserve for this Property already have enough Funds",async()=>{
+        await vacancyReserve.connect(propertyManager).restoreVacancyReserve(0,{value:250000});
+        await expect(vacancyReserve.connect(propertyManager).restoreVacancyReserve(0,{value:50000})).to.be.revertedWith("Vacancy Reserve for this Property already have enough Funds");
     });
-    it("It should be reverted with :-Amount is more than the deficit in the maintenance reserve",async()=>{
-        await expect(maintenanceReserve.connect(propertyManager).restoreMaintenanceReserve(0,{value:350000})).to.be.revertedWith("Amount is more than the deficit in the maintenance reserve");
+    it("It should be reverted with :-Amount is more than the deficit in the vacancy reserve",async()=>{
+        await expect(vacancyReserve.connect(propertyManager).restoreVacancyReserve(0,{value:350000})).to.be.revertedWith("Amount is more than the deficit in the Vacancy reserve");
     });
-    it("It should restore reserve with given value and emit FundsAddedToMaintenanceReserve event",async()=>{
-        await expect(maintenanceReserve.connect(propertyManager).restoreMaintenanceReserve(0,{value:50000})).to.emit(maintenanceReserve,"FundsAddedToMaintenanceReserve").withArgs(0,50000);
+    it("It should restore reserve with given value and emit FundsAddedToVacancyReserve event",async()=>{
+        await expect(vacancyReserve.connect(propertyManager).restoreVacancyReserve(0,{value:50000})).to.emit(vacancyReserve,"FundsAddedToVacancyReserve").withArgs(0,50000);
       
     });
 });
-describe("withdrawFromMaintenanceReserve function testcases",function(){
+describe("withdrawFromVacancyReserve function testcases",function(){
     it("Withdraw function can only be called through DAO contract",async()=>{
-        maintenanceReserve.connect(propertyManager).setDAOContractAddr(DAOContract.address);
-        await expect(maintenanceReserve.connect(propertyManager).withdrawFromMaintenanceReserve(0,1000,tenant.address)).to.be.revertedWith("Withdraw function can only be called through DAO contract");
+        vacancyReserve.connect(propertyManager).setDAOContractAddr(DAOContract.address);
+        await expect(vacancyReserve.connect(propertyManager).withdrawFromVacancyReserve(0,1000,tenant.address)).to.be.revertedWith("Withdraw function can only be called by DAO contract");
     });
     it("recepient address can't be zero ",async()=>{
-        maintenanceReserve.connect(propertyManager).setDAOContractAddr(DAOContract.address);
-        await expect(maintenanceReserve.connect(DAOContract).withdrawFromMaintenanceReserve(0,1000,ethers.constants.AddressZero)).to.be.revertedWith("Invalid Recepient Address");
+        vacancyReserve.connect(propertyManager).setDAOContractAddr(DAOContract.address);
+        await expect(vacancyReserve.connect(DAOContract).withdrawFromVacancyReserve(0,1000,ethers.constants.AddressZero)).to.be.revertedWith("Invalid Recepient Address");
     });
-    it("Can't withdraw amount more than funds in the maintenance reserve",async()=>{
-        maintenanceReserve.connect(propertyManager).setDAOContractAddr(DAOContract.address);
-        await expect(maintenanceReserve.connect(DAOContract).withdrawFromMaintenanceReserve(0,600000,tenant.address)).to.be.revertedWith("Not enough funds in the maintenance reserve");
+    it("Can't withdraw amount more than funds in the vacancy reserve",async()=>{
+        vacancyReserve.connect(propertyManager).setDAOContractAddr(DAOContract.address);
+        await expect(vacancyReserve.connect(DAOContract).withdrawFromVacancyReserve(0,600000,tenant.address)).to.be.revertedWith("Not enough funds in the Vacancy reserve");
     }); 
-    it("Can't withdraw amount more than funds in the maintenance reserve",async()=>{
-        await maintenanceReserve.connect(propertyManager).setDAOContractAddr(DAOContract.address);
+    it("Can't withdraw amount more than funds in the vacancy reserve",async()=>{
+        await vacancyReserve.connect(propertyManager).setDAOContractAddr(DAOContract.address);
         let tenantInitialbalance=await tenant.getBalance();
         let expectedBalance=tenantInitialbalance.add(BigNumber.from(5000));
-        await maintenanceReserve.connect(DAOContract).withdrawFromMaintenanceReserve(0,5000,tenant.address);
+        await vacancyReserve.connect(DAOContract).withdrawFromVacancyReserve(0,5000,tenant.address);
         expect(await tenant.getBalance()).to.equal(expectedBalance);
     });
 });
