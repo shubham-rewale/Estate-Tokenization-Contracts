@@ -1,7 +1,3 @@
-const {time, loadFixture,} = require("@nomicfoundation/hardhat-network-helpers");
-const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
-
-const { inputToConfig } = require("@ethereum-waffle/compiler");
 const chai = require("chai");
 const { solidity } = require("ethereum-waffle");
 chai.use(solidity);
@@ -164,7 +160,7 @@ it("user other than property manager should not be able to call this function:in
   });
   it("property manager should not be able to initiate rental period for already occupied property",async()=>{
     await rentalProperties.connect(propertyManager).enterRentalPropertyDetails(0,500,500);
-    await expect(rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250,250, { value: 1000 }))
+    await rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250,250, { value: 1000 });
     await expect(rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250,250, { value: 1000 })).to.be.revertedWith("Property is already occupied");
  });
  it("property manager should not be able to initiate rental period if Tenant address is zero address ",async()=>{
@@ -179,12 +175,12 @@ it("property manager should not be able to initiate rental period if msg.value i
 describe("distributeRentAmount testcases",function(){
 it("only property manager should be able to call distributeRentAmount function",async()=>{
   await rentalProperties.connect(propertyManager).enterRentalPropertyDetails(0,500000,500000);
-  await expect(rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250000,250000, { value: BigNumber.from("1000000000000000000") }))
+  await rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250000,250000, { value: BigNumber.from("1000000000000000000") });
   await expect(rentalProperties.connect(propertyManager).distributeRentAmount(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address])).to.emit(rentalProperties,'RentDistributed').withArgs(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address],[BigNumber.from("49999999999975000"),BigNumber.from("29999999999985000"),BigNumber.from("19999999999990000")]);   
 });
 it("User other than property manager should not be able to call distributeRentAmount function",async()=>{
   await rentalProperties.connect(propertyManager).enterRentalPropertyDetails(0,500000,500000);
-  await expect(rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250000,250000, { value: BigNumber.from("1000000000000000000") }))
+  await rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250000,250000, { value: BigNumber.from("1000000000000000000") });
   await expect(rentalProperties.connect(propertyOwner1).distributeRentAmount(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address])).to.be.revertedWith("Caller is not the Property Manager");
 });
   it("property manager should not be able to distributeRentAmount for a non listing property",async()=>{
@@ -196,19 +192,19 @@ it("User other than property manager should not be able to call distributeRentAm
  });
 it("property manager should not be able to call this function : testing of distributeRentAmount",async()=>{
   await rentalProperties.connect(propertyManager).enterRentalPropertyDetails(0,500,500);
-  await expect(rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250,250, { value: 10000 }))
+  await rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250,250, { value: 10000 });
   await expect(rentalProperties.connect(propertyManager).distributeRentAmount(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address])).to.emit(rentalProperties,'RentDistributed').withArgs(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address],[450,270,180]);  
 });
 it("property manager should not be able to call distributeRentAmount function before 24 hours",async()=>{
   await rentalProperties.connect(propertyManager).enterRentalPropertyDetails(0,500,500);
-  await expect(rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250,250, { value: 10000 }))
-  await expect(rentalProperties.connect(propertyManager).distributeRentAmount(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address])).to.emit(rentalProperties,'RentDistributed').withArgs(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address],[450,270,180]);  
+  await rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250,250, { value: 10000 });
+  await rentalProperties.connect(propertyManager).distributeRentAmount(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address]); 
   await expect(rentalProperties.connect(propertyManager).distributeRentAmount(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address])).to.be.revertedWith("Wait for the next rent distribution cycle"); 
 });
 it("property manager should be able to call distributeRentAmount function again after 24 hours",async()=>{
   await rentalProperties.connect(propertyManager).enterRentalPropertyDetails(0,500000,500000);
-  await expect(rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250000,250000, { value: BigNumber.from("1000000000000000000") }))
-  await expect(rentalProperties.connect(propertyManager).distributeRentAmount(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address])).to.emit(rentalProperties,'RentDistributed').withArgs(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address],[BigNumber.from("49999999999975000"),BigNumber.from("29999999999985000"),BigNumber.from("19999999999990000")]);  
+  await rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250000,250000, { value: BigNumber.from("1000000000000000000") });
+  await rentalProperties.connect(propertyManager).distributeRentAmount(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address]);
   await helpers.time.increase(24 * 60 * 60);
   await expect(rentalProperties.connect(propertyManager).distributeRentAmount(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address])).to.emit(rentalProperties,'RentDistributed').withArgs(0,[propertyOwner1.address,propertyOwner2.address,propertyOwner3.address],[BigNumber.from("49999999999975000"),BigNumber.from("29999999999985000"),BigNumber.from("19999999999990000")]);  
 });
@@ -224,7 +220,7 @@ it("property manager should be able to call distributeRentAmount function again 
     });
      it("User other than property manager should  be able to call this function : testing of terminateRentalPeriod",async()=>{
       await rentalProperties.connect(propertyManager).enterRentalPropertyDetails(0,500,500);
-      await expect(rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250,250, { value: 1000 }))
+      await rentalProperties.connect(propertyManager).initiateRentalPeriod(0,tenant.address,10,250,250, { value: 1000 });
       await expect(rentalProperties.connect(propertyOwner1).terminateRentalPeriod(0)).to.be.revertedWith("Caller is not the Property Manager");
     });
     it("property manager should not be able to terminateRentalPeriod of a non listing property",async()=>{
