@@ -19,8 +19,8 @@ describe("Estate DAO ", function () {
   let addrs;
   let MockDAO;
   let mockDAO;
-  let MockReserveContract;
-  let mockReserveContract;
+  let MaintenanceReserve;
+  let maintenanceReserve;
   let mogulDAOMerkleTree;
   beforeEach(async () => {
     [deployer, propertyManager, owner1, owner2, owner3, ...addrs] =
@@ -28,9 +28,7 @@ describe("Estate DAO ", function () {
     const owners = [owner1.address, owner2.address, owner3.address];
     mogulDAOMerkleTree = new MogulDAOMerkleTree(owners);
     MockDAO = await ethers.getContractFactory("DAO");
-    MockReserveContract = await ethers.getContractFactory(
-      "MockReserveContract"
-    );
+    MaintenanceReserve = await ethers.getContractFactory("MaintenanceReserve");
 
     //Deploy the DAO contract
     mockDAO = await upgrades.deployProxy(
@@ -44,38 +42,38 @@ describe("Estate DAO ", function () {
     await mockDAO.deployed();
 
     /** Deploy the reserve contract  */
-    mockReserveContract = await upgrades.deployProxy(
-      MockReserveContract,
+    maintenanceReserve = await upgrades.deployProxy(
+      MaintenanceReserve,
       [mockDAO.address],
       { initializer: "initialize" },
       {
         kind: "uups",
       }
     );
-    await mockReserveContract.deployed();
+    await maintenanceReserve.deployed();
 
     //Send some ethers to the reserve contract from deployer account
     await deployer.sendTransaction({
-      to: mockReserveContract.address,
+      to: maintenanceReserve.address,
       value: ethers.utils.parseEther("1.0"),
     });
 
     //set the reserve contract address in the DAO contract
-    await mockDAO.setResrveContractAddress(mockReserveContract.address);
+    await mockDAO.setMaintenanceReserveAddress(maintenanceReserve.address);
   });
   it("Deployer should be the owner of DAO the contract", async () => {
     expect(await mockDAO.owner()).to.equal(deployer.address);
   });
 
   it("Reserve contract should have balance that has sent to it", async () => {
-    expect(await mockReserveContract.balanceOf()).to.equal(
+    expect(await maintenanceReserve.balanceOf()).to.equal(
       ethers.utils.parseEther("1.0")
     );
   });
 
   it("Only DAO contract can call withdrawFromMaintenanceReserve to forward funds", async () => {
     await expect(
-      mockReserveContract.withdrawFromMaintenanceReserve(
+      maintenanceReserve.withdrawFromMaintenanceReserve(
         0,
         1000,
         propertyManager.address
