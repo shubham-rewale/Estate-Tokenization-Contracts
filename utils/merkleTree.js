@@ -1,29 +1,29 @@
 const { MerkleTree } = require("merkletreejs");
 const keccak256 = require("keccak256");
 
-class MogulDAOMarkleTree {
+class MogulDAOMerkleTree {
   constructor(propertyOwnerAddresses) {
     this.propertyOwnerAddresses = propertyOwnerAddresses;
 
     const leafNodes = this.propertyOwnerAddresses.map((addr) =>
       keccak256(addr)
     );
-    this.propertyOwnersMarkleTree = new MerkleTree(leafNodes, keccak256, {
+    this.propertyOwnersMerkleTree = new MerkleTree(leafNodes, keccak256, {
       sortPairs: true,
     });
   }
 
   getOwnersRootHash() {
-    const rootHash = this.propertyOwnersMarkleTree.getHexRoot();
+    const rootHash = this.propertyOwnersMerkleTree.getHexRoot();
     return rootHash;
   }
 
   getOwnerProof(ownerAddress) {
-    const proof = this.propertyOwnersMarkleTree.getHexProof(
+    const proof = this.propertyOwnersMerkleTree.getHexProof(
       keccak256(ownerAddress)
     );
     return proof;
   }
 }
 
-module.exports = MogulDAOMarkleTree;
+module.exports = MogulDAOMerkleTree;

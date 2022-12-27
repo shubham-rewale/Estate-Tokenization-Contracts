@@ -9,7 +9,7 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgrad
 
 ///@title A DAO contract
 ///@notice Use this contract create a proposal, vote & executed.After execution of a successful proposal, property manager will receive the desired amount from maintenance reserve.
-contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
+contract DAO is OwnableUpgradeable, UUPSUpgradeable {
     using SafeCastUpgradeable for uint256;
     using TimersUpgradeable for TimersUpgradeable.BlockNumber;
     ///@notice Defined a proposal state
@@ -17,6 +17,11 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         Pending,
         Active,
         ExecutionPeriod
+    }
+    ///@notice Defined all available withdrawable funds contract
+    enum ReserveContracts {
+        MaintenanceReserve,
+        VacancyReserve
     }
     ///@notice unique proposal id representing each proposal
     uint256 public proposalId;
@@ -26,8 +31,10 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
     uint256 public votingPeriod;
     ///@notice Address of the property manager
     address public propertyManager;
-    ///@dev Address of the Reserve contract . In which reserves are maintained
-    address public ReserveContractAddress;
+    ///@dev Address of the Maintenance Reserve contract . In which reserves are maintained
+    address public MaintenanceReserve;
+    ///@dev Address of the Vacancy Reserve contract . In which reserves are maintained
+    address public VacancyReserve;
 
     ///@dev Describing a proposal structure
     struct Proposal {
@@ -35,6 +42,7 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         TimersUpgradeable.BlockNumber voteEnd;
         uint256 tokenId;
         uint256 amount;
+        ReserveContracts withdrawFundsFrom;
         bytes32 votersRootHash;
         string proposalProof;
     }
@@ -50,6 +58,7 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
     event proposalInitiated(
         uint256 proposalId,
         uint256 tokenId,
+        ReserveContracts withdrawFundsFrom,
         uint256 presentBlockNumber,
         uint256 votingWillStartAt,
         uint256 votingWillEndAt
@@ -134,26 +143,43 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
     }
 
     ///@dev Owner can call this function to set Reserve contract address
-    ///@param _reserveContractAddress Reserve contract address
-    function setResrveContractAddress(address _reserveContractAddress)
+    ///@param _maintenanceReserveAddress Reserve contract address
+    function setMaintenanceReserveAddress(address _maintenanceReserveAddress)
         external
         onlyOwner
     {
         require(
-            _reserveContractAddress != address(0),
-            "Reserve Contract address can be empty"
+            _maintenanceReserveAddress != address(0),
+            "maintenance Reserve Contract address can be empty"
         );
-        ReserveContractAddress = _reserveContractAddress;
+        MaintenanceReserve = _maintenanceReserveAddress;
+    }
+
+    ///@dev Owner can call this function to set Reserve contract address
+    ///@param _vacancyReserveAddress vacancy Reserve contract address
+    function setVacancyReserveAddress(address _vacancyReserveAddress)
+        external
+        onlyOwner
+    {
+        require(
+            _vacancyReserveAddress != address(0),
+            "vacancy Reserve Contract address can be empty"
+        );
+        VacancyReserve = _vacancyReserveAddress;
     }
 
     ///@notice Call this function to make a proposal .Currently only property manager can call this function.
     ///@param _tokenId tokenID representing the property
     ///@param _amount Requested Amount form reserve
+    ///@param _withdrawFundsFrom mention the contract from which proposers wants to withdraw funds
+    ///@notice _withdrawFundsFrom -> 0 ->  withdraw from MaintenanceReserve, _withdrawFundsFrom -> 1 ->  withdraw from VacancyReserve
     ///@param _proposalProof Any external link for proposal proof
     ///@param _votersRootHash property owners root hash at the time of proposal creation.
+
     function propose(
         uint256 _tokenId,
         uint256 _amount,
+        ReserveContracts _withdrawFundsFrom,
         string calldata _proposalProof,
         bytes32 _votersRootHash
     ) external {
@@ -169,6 +195,7 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         require(_votersRootHash != bytes32(0), "Root hash cannot be empty");
         proposals[proposalId].tokenId = _tokenId;
         proposals[proposalId].amount = _amount;
+        proposals[proposalId].withdrawFundsFrom = _withdrawFundsFrom;
         proposals[proposalId].proposalProof = _proposalProof;
         proposals[proposalId].votersRootHash = _votersRootHash;
         uint64 start = block.number.toUint64() + votingDelay.toUint64();
@@ -181,6 +208,7 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         emit proposalInitiated(
             proposalId - 1,
             _tokenId,
+            _withdrawFundsFrom,
             block.number,
             start,
             deadline
@@ -197,6 +225,7 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         uint256 _proposalId,
         uint256 _tokenId,
         uint256 _amount,
+        ReserveContracts _withdrawFundsFrom,
         string calldata _proposalProof,
         bytes32 _votersRootHash
     ) external {
@@ -219,6 +248,7 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
 
         proposal.tokenId = _tokenId;
         proposal.amount = _amount;
+        proposal.withdrawFundsFrom = _withdrawFundsFrom;
         proposal.proposalProof = _proposalProof;
         proposal.votersRootHash = _votersRootHash;
 
@@ -278,21 +308,19 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
             "Proposal is not in Execution state"
         );
         require(
-            ReserveContractAddress != address(0),
-            "Invalid Resserve contract address"
+            MaintenanceReserve != address(0),
+            "Invalid Maintenance Resserve contract address"
+        );
+        require(
+            VacancyReserve != address(0),
+            "Invalid Vacancy Resserve contract address"
         );
         result = isVotingSuccessful(_proposalId);
         bool isTransferSuccessful;
         if (result) {
-            bytes memory payload = abi.encodeWithSignature(
-                "withdrawFromMaintenanceReserve(uint256,uint256,address)",
-                proposals[_proposalId].tokenId,
-                proposals[_proposalId].amount,
-                propertyManager
-            );
-            (isTransferSuccessful, ) = ReserveContractAddress.call{value: 0}(
-                payload
-            );
+            bytes memory payload = getPayload(_proposalId);
+
+            isTransferSuccessful = handleTransafer(_proposalId, payload);
         }
 
         require(
@@ -305,9 +333,61 @@ contract MockDAO is OwnableUpgradeable, UUPSUpgradeable {
         return result;
     }
 
-    ///@dev for development purpose to get the current block number . Might delete later
-    function getCurrentBlock() external view returns (uint256 blockNumber) {
-        return block.number;
+    ///@dev returns payload to transfer funds from a reserve contract
+    ///@param _proposalId Id of the proposal
+    ///@dev Returns the payload bytes
+    function getPayload(uint256 _proposalId)
+        internal
+        view
+        returns (bytes memory payload)
+    {
+        Proposal memory proposal = proposals[_proposalId];
+        if (proposal.withdrawFundsFrom == ReserveContracts.MaintenanceReserve) {
+            payload = abi.encodeWithSignature(
+                "withdrawFromMaintenanceReserve(uint256,uint256,address)",
+                proposal.tokenId,
+                proposal.amount,
+                propertyManager
+            );
+            return payload;
+        }
+        if (proposal.withdrawFundsFrom == ReserveContracts.VacancyReserve) {
+            payload = abi.encodeWithSignature(
+                "withdrawFromVacancyReserve(uint256,uint256,address)",
+                proposal.tokenId,
+                proposal.amount,
+                propertyManager
+            );
+            return payload;
+        }
+    }
+
+    ///@dev handles transfer of funds from a reserve contract
+    ///@param _proposalId proposal ID
+    ///@param _payload payload for the transfer .Which we can get by calling getPayload method.
+    ///returns a bool whether this transfer is successful or not
+    function handleTransafer(uint256 _proposalId, bytes memory _payload)
+        internal
+        returns (bool isTransferSuccessful)
+    {
+        if (
+            proposals[_proposalId].withdrawFundsFrom ==
+            ReserveContracts.MaintenanceReserve
+        ) {
+            (isTransferSuccessful, ) = MaintenanceReserve.call{value: 0}(
+                _payload
+            );
+            return isTransferSuccessful;
+        }
+        if (
+            proposals[_proposalId].withdrawFundsFrom ==
+            ReserveContracts.VacancyReserve
+        ) {
+            (isTransferSuccessful, ) = VacancyReserve.call{value: 0}(_payload);
+            return isTransferSuccessful;
+        }
+
+        return false;
     }
 
     ///@dev to get the result of a voting
