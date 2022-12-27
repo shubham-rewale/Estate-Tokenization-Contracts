@@ -4,7 +4,7 @@ coverage
 coverage.json
 typechain
 typechain-types
-.openzepplin/
+.openzepplin
 #Hardhat files
 cache
 artifacts
