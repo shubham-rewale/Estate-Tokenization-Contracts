@@ -16,9 +16,11 @@ contract MaintenanceReserve is OwnableUpgradeable, UUPSUpgradeable {
         return address(this).balance;
     }
 
-    event Received(address from);
+    event Received(address from, uint256 value);
 
-    receive() external payable {}
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
 
     function withdrawFromMaintenanceReserve(
         uint256 _tokenId,
