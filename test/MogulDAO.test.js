@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers, upgrades, waffle } = require("hardhat");
 const { BigNumber } = require("ethers");
-const MogulDAOMarkleTree = require("../utils/markleTree");
+const MogulDAOMerkleTree = require("../utils/merkleTree");
 const { moveBlocks } = require("../utils/helper");
 
 const provider = waffle.provider;
@@ -9,7 +9,7 @@ const provider = waffle.provider;
 //In blocks
 const votingDelay = 10;
 const votingPeriod = 100;
-// const mogulDAOMarkleTree = new MogulDAOMarkleTree();
+// const mogulDAOMerkleTree = new MogulDAOMerkleTree();
 describe("Estate DAO ", function () {
   let deployer;
   let propertyManager;
@@ -21,13 +21,13 @@ describe("Estate DAO ", function () {
   let mockDAO;
   let MockReserveContract;
   let mockReserveContract;
-  let mogulDAOMarkleTree;
+  let mogulDAOMerkleTree;
   beforeEach(async () => {
     [deployer, propertyManager, owner1, owner2, owner3, ...addrs] =
       await ethers.getSigners();
     const owners = [owner1.address, owner2.address, owner3.address];
-    mogulDAOMarkleTree = new MogulDAOMarkleTree(owners);
-    MockDAO = await ethers.getContractFactory("MockDAO");
+    mogulDAOMerkleTree = new MogulDAOMerkleTree(owners);
+    MockDAO = await ethers.getContractFactory("DAO");
     MockReserveContract = await ethers.getContractFactory(
       "MockReserveContract"
     );
@@ -95,7 +95,7 @@ describe("Estate DAO ", function () {
     const tokenId = 0;
     const amount = 1000;
     const proposalProof = "Proposal proof";
-    const ownersRootHash = mogulDAOMarkleTree.getOwnersRootHash();
+    const ownersRootHash = mogulDAOMerkleTree.getOwnersRootHash();
 
     //try to propose from deployer account
     await expect(
@@ -114,7 +114,7 @@ describe("Estate DAO ", function () {
     const tokenId = 0;
     const amount = 1000;
     const proposalProof = "Proposal proof";
-    const ownersRootHash = mogulDAOMarkleTree.getOwnersRootHash();
+    const ownersRootHash = mogulDAOMerkleTree.getOwnersRootHash();
     await expect(
       mockDAO
         .connect(propertyManager)
@@ -154,16 +154,16 @@ describe("Estate DAO ", function () {
     const tokenId = 0;
     const amount = 1000;
     const proposalProof = "Proposal proof";
-    const ownersRootHash = mogulDAOMarkleTree.getOwnersRootHash();
+    const ownersRootHash = mogulDAOMerkleTree.getOwnersRootHash();
     const tx = await mockDAO
       .connect(propertyManager)
       .propose(tokenId, amount, proposalProof, ownersRootHash);
     //get the proposal Id
     const proposalId = (await tx.wait()).events[0].args.proposalId;
     //try to cast a vote from vot1 address
-    const ownerMarkleProof = mogulDAOMarkleTree.getOwnerProof(owner1.address);
+    const ownerMerkleProof = mogulDAOMerkleTree.getOwnerProof(owner1.address);
     await expect(
-      mockDAO.connect(owner1).vote(proposalId, 1, ownerMarkleProof)
+      mockDAO.connect(owner1).vote(proposalId, 1, ownerMerkleProof)
     ).to.be.revertedWith("Voting is not active");
   });
 
@@ -172,7 +172,7 @@ describe("Estate DAO ", function () {
     const tokenId = 0;
     const amount = 1000;
     const proposalProof = "Proposal proof";
-    const ownersRootHash = mogulDAOMarkleTree.getOwnersRootHash();
+    const ownersRootHash = mogulDAOMerkleTree.getOwnersRootHash();
     const tx = await mockDAO
       .connect(propertyManager)
       .propose(tokenId, amount, proposalProof, ownersRootHash);
@@ -181,9 +181,9 @@ describe("Estate DAO ", function () {
     //move the blocks to get past of voting delay
     await moveBlocks(votingDelay + 1);
     //try to cast a vote from vot1 address
-    const ownerMarkleProof = mogulDAOMarkleTree.getOwnerProof(owner1.address);
+    const ownerMerkleProof = mogulDAOMerkleTree.getOwnerProof(owner1.address);
     await expect(
-      mockDAO.connect(owner1).vote(proposalId, 1, ownerMarkleProof)
+      mockDAO.connect(owner1).vote(proposalId, 1, ownerMerkleProof)
     ).to.emit(mockDAO, "voted");
   });
   it("Voters should not be able to vote twice for a proposal", async () => {
@@ -191,7 +191,7 @@ describe("Estate DAO ", function () {
     const tokenId = 0;
     const amount = 1000;
     const proposalProof = "Proposal proof";
-    const ownersRootHash = mogulDAOMarkleTree.getOwnersRootHash();
+    const ownersRootHash = mogulDAOMerkleTree.getOwnersRootHash();
     const tx = await mockDAO
       .connect(propertyManager)
       .propose(tokenId, amount, proposalProof, ownersRootHash);
@@ -200,11 +200,11 @@ describe("Estate DAO ", function () {
     //move the blocks to get past of voting delay
     await moveBlocks(votingDelay + 1);
     //try to cast a vote from owner1 address
-    const ownerMarkleProof = mogulDAOMarkleTree.getOwnerProof(owner1.address);
-    await mockDAO.connect(owner1).vote(proposalId, 1, ownerMarkleProof);
+    const ownerMerkleProof = mogulDAOMerkleTree.getOwnerProof(owner1.address);
+    await mockDAO.connect(owner1).vote(proposalId, 1, ownerMerkleProof);
     //try to vote to the same proposal twice
     await expect(
-      mockDAO.connect(owner1).vote(proposalId, 1, ownerMarkleProof)
+      mockDAO.connect(owner1).vote(proposalId, 1, ownerMerkleProof)
     ).to.be.revertedWith("Cannot vote multiple times to the same proposal");
   });
   it("Only owner should be able to call the execute function", async () => {
@@ -212,7 +212,7 @@ describe("Estate DAO ", function () {
     const tokenId = 0;
     const amount = 1000;
     const proposalProof = "Proposal proof";
-    const ownersRootHash = mogulDAOMarkleTree.getOwnersRootHash();
+    const ownersRootHash = mogulDAOMerkleTree.getOwnersRootHash();
     const tx = await mockDAO
       .connect(propertyManager)
       .propose(tokenId, amount, proposalProof, ownersRootHash);
@@ -221,8 +221,8 @@ describe("Estate DAO ", function () {
     //move the blocks to get past of voting delay
     await moveBlocks(votingDelay + 1);
     //try to cast a vote from owner1 address
-    const ownerMarkleProof = mogulDAOMarkleTree.getOwnerProof(owner1.address);
-    await mockDAO.connect(owner1).vote(proposalId, 1, ownerMarkleProof);
+    const ownerMerkleProof = mogulDAOMerkleTree.getOwnerProof(owner1.address);
+    await mockDAO.connect(owner1).vote(proposalId, 1, ownerMerkleProof);
 
     //Now try to execute from different account
     await expect(
@@ -235,7 +235,7 @@ describe("Estate DAO ", function () {
     const tokenId = 0;
     const amount = 1000;
     const proposalProof = "Proposal proof";
-    const ownersRootHash = mogulDAOMarkleTree.getOwnersRootHash();
+    const ownersRootHash = mogulDAOMerkleTree.getOwnersRootHash();
     const tx = await mockDAO
       .connect(propertyManager)
       .propose(tokenId, amount, proposalProof, ownersRootHash);
@@ -244,8 +244,8 @@ describe("Estate DAO ", function () {
     //move the blocks to get past of voting delay
     await moveBlocks(votingDelay + 1);
     //try to cast a vote from owner1 address
-    const ownerMarkleProof = mogulDAOMarkleTree.getOwnerProof(owner1.address);
-    await mockDAO.connect(owner1).vote(proposalId, 1, ownerMarkleProof);
+    const ownerMerkleProof = mogulDAOMerkleTree.getOwnerProof(owner1.address);
+    await mockDAO.connect(owner1).vote(proposalId, 1, ownerMerkleProof);
 
     //try to execute
     await expect(mockDAO.execute(proposalId)).to.be.revertedWith(
@@ -257,7 +257,7 @@ describe("Estate DAO ", function () {
     const tokenId = 0;
     const amount = 1000;
     const proposalProof = "Proposal proof";
-    const ownersRootHash = mogulDAOMarkleTree.getOwnersRootHash();
+    const ownersRootHash = mogulDAOMerkleTree.getOwnersRootHash();
     const tx = await mockDAO
       .connect(propertyManager)
       .propose(tokenId, amount, proposalProof, ownersRootHash);
@@ -266,8 +266,8 @@ describe("Estate DAO ", function () {
     //move the blocks to get past of voting delay
     await moveBlocks(votingDelay + 1);
     //try to cast a vote from owner1 address
-    const ownerMarkleProof = mogulDAOMarkleTree.getOwnerProof(owner1.address);
-    await mockDAO.connect(owner1).vote(proposalId, 1, ownerMarkleProof);
+    const ownerMerkleProof = mogulDAOMerkleTree.getOwnerProof(owner1.address);
+    await mockDAO.connect(owner1).vote(proposalId, 1, ownerMerkleProof);
 
     await moveBlocks(votingPeriod + 1);
 
@@ -279,7 +279,7 @@ describe("Estate DAO ", function () {
     const tokenId = 0;
     const amount = 1000;
     const proposalProof = "Proposal proof";
-    const ownersRootHash = mogulDAOMarkleTree.getOwnersRootHash();
+    const ownersRootHash = mogulDAOMerkleTree.getOwnersRootHash();
     const tx = await mockDAO
       .connect(propertyManager)
       .propose(tokenId, amount, proposalProof, ownersRootHash);
@@ -288,8 +288,8 @@ describe("Estate DAO ", function () {
     //move the blocks to get past of voting delay
     await moveBlocks(votingDelay + 1);
     //try to cast a vote from owner1 address
-    const ownerMarkleProof = mogulDAOMarkleTree.getOwnerProof(owner1.address);
-    await mockDAO.connect(owner1).vote(proposalId, 1, ownerMarkleProof);
+    const ownerMerkleProof = mogulDAOMerkleTree.getOwnerProof(owner1.address);
+    await mockDAO.connect(owner1).vote(proposalId, 1, ownerMerkleProof);
 
     await moveBlocks(votingPeriod + 1);
     const proposalManagerBalanceBefore = await provider.getBalance(
@@ -316,7 +316,7 @@ describe("Estate DAO ", function () {
     const tokenId = 0;
     const amount = 1000;
     const proposalProof = "Proposal proof";
-    const ownersRootHash = mogulDAOMarkleTree.getOwnersRootHash();
+    const ownersRootHash = mogulDAOMerkleTree.getOwnersRootHash();
     const tx = await mockDAO
       .connect(propertyManager)
       .propose(tokenId, amount, proposalProof, ownersRootHash);
@@ -325,10 +325,10 @@ describe("Estate DAO ", function () {
     //move the blocks to get past of voting delay
     await moveBlocks(votingDelay + 1);
     //try to cast a vote from owner1 address
-    const ownerMarkleProof = mogulDAOMarkleTree.getOwnerProof(owner1.address);
+    const ownerMerkleProof = mogulDAOMerkleTree.getOwnerProof(owner1.address);
 
     //vote against the proposal
-    await mockDAO.connect(owner1).vote(proposalId, 0, ownerMarkleProof);
+    await mockDAO.connect(owner1).vote(proposalId, 0, ownerMerkleProof);
 
     await moveBlocks(votingPeriod + 1);
     const proposalManagerBalanceBefore = await provider.getBalance(
@@ -354,7 +354,7 @@ describe("Estate DAO ", function () {
     //reserve contract has 1 ether . Request amount for 2 ether
     const amount = ethers.utils.parseEther("2");
     const proposalProof = "Proposal proof";
-    const ownersRootHash = mogulDAOMarkleTree.getOwnersRootHash();
+    const ownersRootHash = mogulDAOMerkleTree.getOwnersRootHash();
     const tx = await mockDAO
       .connect(propertyManager)
       .propose(tokenId, amount, proposalProof, ownersRootHash);
@@ -363,10 +363,10 @@ describe("Estate DAO ", function () {
     //move the blocks to get past of voting delay
     await moveBlocks(votingDelay + 1);
     //try to cast a vote from owner1 address
-    const ownerMarkleProof = mogulDAOMarkleTree.getOwnerProof(owner1.address);
+    const ownerMerkleProof = mogulDAOMerkleTree.getOwnerProof(owner1.address);
 
     //vote for the proposal
-    await mockDAO.connect(owner1).vote(proposalId, 1, ownerMarkleProof);
+    await mockDAO.connect(owner1).vote(proposalId, 1, ownerMerkleProof);
 
     await moveBlocks(votingPeriod + 1);
     const proposalManagerBalanceBefore = await provider.getBalance(
