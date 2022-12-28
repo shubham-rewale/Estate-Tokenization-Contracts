@@ -6,6 +6,8 @@ import "@openzeppelin/contracts-upgradeable/utils/TimersUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeCastUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/MerkleProofUpgradeable.sol";
+import "./interfaces/IMaintenanceReserve.sol";
+import "./interfaces/IVacancyReserve.sol";
 
 ///@title A DAO contract
 ///@notice Use this contract create a proposal, vote & executed.After execution of a successful proposal, property manager will receive the desired amount from maintenance reserve.
@@ -32,9 +34,9 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
     ///@notice Address of the property manager
     address public propertyManager;
     ///@dev Address of the Maintenance Reserve contract . In which reserves are maintained
-    address public MaintenanceReserve;
+    IMaintenanceReserve public MaintenanceReserve;
     ///@dev Address of the Vacancy Reserve contract . In which reserves are maintained
-    address public VacancyReserve;
+    IVacancyReserve public VacancyReserve;
 
     ///@dev Describing a proposal structure
     struct Proposal {
@@ -144,12 +146,11 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
 
     ///@dev Owner can call this function to set Reserve contract address
     ///@param _maintenanceReserveAddress Reserve contract address
-    function setMaintenanceReserveAddress(address _maintenanceReserveAddress)
-        external
-        onlyOwner
-    {
+    function setMaintenanceReserveAddress(
+        IMaintenanceReserve _maintenanceReserveAddress
+    ) external onlyOwner {
         require(
-            _maintenanceReserveAddress != address(0),
+            _maintenanceReserveAddress != IMaintenanceReserve(address(0)),
             "maintenance Reserve Contract address can be empty"
         );
         MaintenanceReserve = _maintenanceReserveAddress;
@@ -157,12 +158,12 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
 
     ///@dev Owner can call this function to set Reserve contract address
     ///@param _vacancyReserveAddress vacancy Reserve contract address
-    function setVacancyReserveAddress(address _vacancyReserveAddress)
+    function setVacancyReserveAddress(IVacancyReserve _vacancyReserveAddress)
         external
         onlyOwner
     {
         require(
-            _vacancyReserveAddress != address(0),
+            _vacancyReserveAddress != IVacancyReserve(address(0)),
             "vacancy Reserve Contract address can be empty"
         );
         VacancyReserve = _vacancyReserveAddress;
@@ -193,6 +194,15 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
             "proposalProof cannot be empty"
         );
         require(_votersRootHash != bytes32(0), "Root hash cannot be empty");
+        require(
+            MaintenanceReserve != IMaintenanceReserve(address(0)),
+            "Invalid Maintenance Resserve contract address"
+        );
+        require(
+            VacancyReserve != IVacancyReserve(address(0)),
+            "Invalid Vacancy Resserve contract address"
+        );
+        // uint balanceOfMaintenance =
         proposals[proposalId].tokenId = _tokenId;
         proposals[proposalId].amount = _amount;
         proposals[proposalId].withdrawFundsFrom = _withdrawFundsFrom;
@@ -307,26 +317,26 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
             getProposalState(_proposalId) == ProposalState.ExecutionPeriod,
             "Proposal is not in Execution state"
         );
-        require(
-            MaintenanceReserve != address(0),
-            "Invalid Maintenance Resserve contract address"
-        );
-        require(
-            VacancyReserve != address(0),
-            "Invalid Vacancy Resserve contract address"
-        );
+        // require(
+        //     MaintenanceReserve != address(0),
+        //     "Invalid Maintenance Resserve contract address"
+        // );
+        // require(
+        //     VacancyReserve != address(0),
+        //     "Invalid Vacancy Resserve contract address"
+        // );
         result = isVotingSuccessful(_proposalId);
-        bool isTransferSuccessful;
+        // bool isTransferSuccessful = true;
         if (result) {
-            bytes memory payload = getPayload(_proposalId);
+            // bytes memory payload = getPayload(_proposalId);
 
-            isTransferSuccessful = handleTransafer(_proposalId, payload);
+            handleTransafer(_proposalId);
         }
 
-        require(
-            !(result && !isTransferSuccessful),
-            "send to property manager failed"
-        );
+        // require(
+        //     !(result && !isTransferSuccessful),
+        //     "send to property manager failed"
+        // );
         delete proposals[_proposalId];
         delete votings[_proposalId];
         emit executed(_proposalId);
@@ -336,58 +346,57 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
     ///@dev returns payload to transfer funds from a reserve contract
     ///@param _proposalId Id of the proposal
     ///@dev Returns the payload bytes
-    function getPayload(uint256 _proposalId)
-        internal
-        view
-        returns (bytes memory payload)
-    {
-        Proposal memory proposal = proposals[_proposalId];
-        if (proposal.withdrawFundsFrom == ReserveContracts.MaintenanceReserve) {
-            payload = abi.encodeWithSignature(
-                "withdrawFromMaintenanceReserve(uint256,uint256,address)",
-                proposal.tokenId,
-                proposal.amount,
-                propertyManager
-            );
-            return payload;
-        }
-        if (proposal.withdrawFundsFrom == ReserveContracts.VacancyReserve) {
-            payload = abi.encodeWithSignature(
-                "withdrawFromVacancyReserve(uint256,uint256,address)",
-                proposal.tokenId,
-                proposal.amount,
-                propertyManager
-            );
-            return payload;
-        }
-    }
+    // function getPayload(uint256 _proposalId)
+    //     internal
+    //     view
+    //     returns (bytes memory payload)
+    // {
+    //     Proposal memory proposal = proposals[_proposalId];
+    //     if (proposal.withdrawFundsFrom == ReserveContracts.MaintenanceReserve) {
+    //         payload = abi.encodeWithSignature(
+    //             "withdrawFromMaintenanceReserve(uint256,uint256,address)",
+    //             proposal.tokenId,
+    //             proposal.amount,
+    //             propertyManager
+    //         );
+    //         return payload;
+    //     }
+    //     if (proposal.withdrawFundsFrom == ReserveContracts.VacancyReserve) {
+    //         payload = abi.encodeWithSignature(
+    //             "withdrawFromVacancyReserve(uint256,uint256,address)",
+    //             proposal.tokenId,
+    //             proposal.amount,
+    //             propertyManager
+    //         );
+    //         return payload;
+    //     }
+    // }
 
     ///@dev handles transfer of funds from a reserve contract
     ///@param _proposalId proposal ID
-    ///@param _payload payload for the transfer .Which we can get by calling getPayload method.
     ///returns a bool whether this transfer is successful or not
-    function handleTransafer(uint256 _proposalId, bytes memory _payload)
-        internal
-        returns (bool isTransferSuccessful)
-    {
+    function handleTransafer(uint256 _proposalId) internal {
+        Proposal memory proposal = proposals[_proposalId];
         if (
             proposals[_proposalId].withdrawFundsFrom ==
             ReserveContracts.MaintenanceReserve
         ) {
-            (isTransferSuccessful, ) = MaintenanceReserve.call{value: 0}(
-                _payload
+            MaintenanceReserve.withdrawFromMaintenanceReserve(
+                proposal.tokenId,
+                proposal.amount,
+                payable(propertyManager)
             );
-            return isTransferSuccessful;
         }
         if (
             proposals[_proposalId].withdrawFundsFrom ==
             ReserveContracts.VacancyReserve
         ) {
-            (isTransferSuccessful, ) = VacancyReserve.call{value: 0}(_payload);
-            return isTransferSuccessful;
+            VacancyReserve.withdrawFromVacancyReserve(
+                proposal.tokenId,
+                proposal.amount,
+                payable(propertyManager)
+            );
         }
-
-        return false;
     }
 
     ///@dev to get the result of a voting
