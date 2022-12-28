@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >0.8.0;
 import "contracts/helper/BasicMetaTransaction.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/ERC1155Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC1155/extensions/ERC1155BurnableUpgradeable.sol";
@@ -13,6 +14,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 
 contract Token is
     Initializable,
+    UUPSUpgradeable,
     ERC1155Upgradeable,
     OwnableUpgradeable,
     ERC1155BurnableUpgradeable,
@@ -86,6 +88,11 @@ contract Token is
     //ANCHOR : mapping for documents
     mapping(uint256 => Docs) public docs;
 
+    ///@custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     //!SECTION MAPPINGS
 
     //SECTION FUNCTIONS
@@ -94,11 +101,14 @@ contract Token is
     function initialize() external initializer {
         __ERC1155_init("");
         __Ownable_init();
+        __UUPSUpgradeable_init();
         __ERC1155Burnable_init();
         __ERC1155Pausable_init();
         __ERC1155Supply_init();
         admin0 = owner();
     }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 
     //ANCHOR:update owner as admin 0
     //for case if the contract owner is changed
