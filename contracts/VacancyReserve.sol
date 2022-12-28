@@ -141,7 +141,7 @@ contract VacancyReserve is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     ) external {
         require(
             msg.sender == DAOContract,
-            "Withdraw function can only be called by DAO contract"
+            "Withdraw function can only be called through DAO contract"
         );
         require(_recepientAddr != address(0), "Invalid Recepient Address");
         require(

@@ -5,7 +5,11 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-contract MaintenanceReserve is Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract MaintenanceReserve is
+    Initializable,
+    UUPSUpgradeable,
+    OwnableUpgradeable
+{
     address rentalPropertiesContract;
     address propertyManager;
     address DAOContract;
@@ -82,7 +86,7 @@ contract MaintenanceReserve is Initializable, UUPSUpgradeable, OwnableUpgradeabl
         );
         DAOContract = _daoContract;
     }
-    
+
     function checkMaintenanceReserve(uint256 _tokenId)
         public
         view
@@ -115,7 +119,6 @@ contract MaintenanceReserve is Initializable, UUPSUpgradeable, OwnableUpgradeabl
         PropertyMaintenanceReserveCap[_tokenId] = _capAmount;
         emit MaintenanceReserveCapUpdated(_tokenId, _capAmount);
     }
-
 
     function restoreMaintenanceReserve(uint256 _tokenId) external payable {
         require(
