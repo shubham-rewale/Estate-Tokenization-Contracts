@@ -176,7 +176,8 @@ describe("Test Cases For Property Rental in Estate Tokenisation", function () {
 				.initiateRentalPeriod(tokenId, tenant.address, rentalPeriodIndays, ethers.utils.parseEther("0.5"), ethers.utils.parseEther("1"), {
           value: ethers.utils.parseEther("5"),
         });
-			let propertyStatus = await rentalProperties.getPropertyStatus(0);
+			let propertyStatus = await rentalProperties.getPropertyStatus(tokenId);
+      expect(await rentalProperties.getPropertyRentDeposits(tokenId)).to.equal(ethers.utils.parseEther("3.5"));
 			expect(propertyStatus[0]).to.equal("Property is currently occupied");
 			expect(propertyStatus[1]).to.equal(tenant.address);
 			expect(propertyStatus[2]).to.equal(BigNumber.from(10));
@@ -236,6 +237,38 @@ describe("Test Cases For Property Rental in Estate Tokenisation", function () {
 			).to.be.revertedWith(
 				"Please deposite rent for the whole month while initiating rental period"
 			);
+		});
+    it("Amount towards Maintenance Reserve should be less than Rent Amount", async () => {
+			await rentalProperties.connect(propertyManager).enterRentalPropertyDetails(tokenId, ethers.utils.parseEther("6.5"), ethers.utils.parseEther("2"));
+			await expect(rentalProperties
+				.connect(propertyManager)
+				.initiateRentalPeriod(tokenId, tenant.address, rentalPeriodIndays, ethers.utils.parseEther("6"), ethers.utils.parseEther("1"), {
+          value: ethers.utils.parseEther("5"),
+        })).to.be.revertedWith("Amount towards Maintenance Reserve should be less than Rent Amount");
+		});
+    it("Please provide amount for the MaintenanceReserve less than or equal to its deficit", async () => {
+			await rentalProperties.connect(propertyManager).enterRentalPropertyDetails(tokenId, ethers.utils.parseEther("1.5"), ethers.utils.parseEther("2"));
+			await expect(rentalProperties
+				.connect(propertyManager)
+				.initiateRentalPeriod(tokenId, tenant.address, rentalPeriodIndays, ethers.utils.parseEther("2.5"), ethers.utils.parseEther("1"), {
+          value: ethers.utils.parseEther("5"),
+        })).to.be.revertedWith("Please provide amount for the MaintenanceReserve less than or equal to its deficit");
+		});
+    it("Amount towards Vacancy Reserve should be less than Rent Amount", async () => {
+			await rentalProperties.connect(propertyManager).enterRentalPropertyDetails(tokenId, ethers.utils.parseEther("1.5"), ethers.utils.parseEther("2"));
+			await expect(rentalProperties
+				.connect(propertyManager)
+				.initiateRentalPeriod(tokenId, tenant.address, rentalPeriodIndays, ethers.utils.parseEther("0.5"), ethers.utils.parseEther("5"), {
+          value: ethers.utils.parseEther("5"),
+        })).to.be.revertedWith("Amount towards Vacancy Reserve should be less than Rent Amount");
+		});
+    it("Please provide amount for the VacancyReserve less than or equal to its deficit", async () => {
+			await rentalProperties.connect(propertyManager).enterRentalPropertyDetails(tokenId, ethers.utils.parseEther("1.5"), ethers.utils.parseEther("2"));
+			await expect(rentalProperties
+				.connect(propertyManager)
+				.initiateRentalPeriod(tokenId, tenant.address, rentalPeriodIndays, ethers.utils.parseEther("0.5"), ethers.utils.parseEther("3"), {
+          value: ethers.utils.parseEther("5"),
+        })).to.be.revertedWith("Please provide amount for the VacancyReserve less than or equal to its deficit");
 		});
 	});
 
@@ -311,31 +344,6 @@ describe("Test Cases For Property Rental in Estate Tokenisation", function () {
 					])
 			).to.be.revertedWith("Property is not currently occupied");
 		});
-		it("property manager should not be able to call this function : testing of distributeRentAmount", async () => {
-			await rentalProperties.connect(propertyManager).enterRentalPropertyDetails(tokenId, ethers.utils.parseEther("1.5"), ethers.utils.parseEther("2"));
-			await rentalProperties
-				.connect(propertyManager)
-				.initiateRentalPeriod(tokenId, tenant.address, rentalPeriodIndays, ethers.utils.parseEther("0.5"), ethers.utils.parseEther("1"), {
-					value: ethers.utils.parseEther("5"),
-				});
-			await expect(
-				rentalProperties
-					.connect(propertyManager)
-					.distributeRentAmount(tokenId, [
-						propertyOwner1.address,
-						propertyOwner2.address,
-						propertyOwner3.address,
-					])
-			)
-				.to.emit(rentalProperties, "RentDistributed")
-				.withArgs(
-					0,
-					[propertyOwner1.address, propertyOwner2.address, propertyOwner3.address],
-					[BigNumber.from("175000000000000000"),
-          BigNumber.from("105000000000000000"),
-          BigNumber.from("70000000000000000"),]
-				);
-		});
 		it("property manager should not be able to call distributeRentAmount function before 24 hours", async () => {
 			await rentalProperties.connect(propertyManager).enterRentalPropertyDetails(tokenId, ethers.utils.parseEther("1.5"), ethers.utils.parseEther("2"));
 			await rentalProperties
@@ -397,6 +405,50 @@ describe("Test Cases For Property Rental in Estate Tokenisation", function () {
 					]
 				);
 		});
+  	it("RentalPeriod should be terminated after the completion of rental days", async () => {
+			await rentalProperties
+				.connect(propertyManager)
+				.enterRentalPropertyDetails(tokenId, ethers.utils.parseEther("1.5"), ethers.utils.parseEther("2"));
+			await rentalProperties
+				.connect(propertyManager)
+				.initiateRentalPeriod(tokenId, tenant.address,4, ethers.utils.parseEther("0.5"), ethers.utils.parseEther("1"), {
+					value: ethers.utils.parseEther("5"),
+				});
+			await rentalProperties
+				.connect(propertyManager)
+				.distributeRentAmount(tokenId, [
+					propertyOwner1.address,
+					propertyOwner2.address,
+					propertyOwner3.address,
+				]);
+			await helpers.time.increase(24 * 60 * 60);
+			await 
+				rentalProperties
+					.connect(propertyManager)
+					.distributeRentAmount(tokenId, [
+						propertyOwner1.address,
+						propertyOwner2.address,
+						propertyOwner3.address,
+					]);
+          await helpers.time.increase(24 * 60 * 60);
+          await 
+            rentalProperties
+              .connect(propertyManager)
+              .distributeRentAmount(tokenId, [
+                propertyOwner1.address,
+                propertyOwner2.address,
+                propertyOwner3.address,
+              ]);
+              await helpers.time.increase(24 * 60 * 60);
+              await expect(
+                rentalProperties
+                  .connect(propertyManager)
+                  .distributeRentAmount(tokenId, [
+                    propertyOwner1.address,
+                    propertyOwner2.address,
+                    propertyOwner3.address,
+                  ])).to.emit(rentalProperties,"RentalPeriodTerminated");
+    });
 	});
 
 	describe("terminateRentalPeriod testcases", function () {
