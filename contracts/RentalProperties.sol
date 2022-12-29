@@ -216,7 +216,7 @@ contract RentalProperties is
         );
         vacancyReserve.setVacancyReserveCap(
             _propertyTokenId,
-            _propertyMaintenanceReserveCap
+            _propertyVacancyReserveCap
         );
         rentalPropertyList[_propertyTokenId] = rentalPropertyDetails(
             _propertyTokenId,
