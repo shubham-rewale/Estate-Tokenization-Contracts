@@ -42,7 +42,7 @@ contract RentalProperties is
         uint256 _rentalStartTimestamp,
         uint256 _rentPeriodInDays
     );
-   
+
     event RentalPeriodTerminated(
         uint256 _rentalPropertyTokenId,
         address terminatedTenant,
@@ -123,6 +123,28 @@ contract RentalProperties is
             "Provide valid Property Manager address"
         );
         propertyManager = _propertyManager;
+    }
+
+    function setMaintenanceReserveAddr(
+        address payable _maintenanceReserveContractAddress
+    ) external onlyOwner {
+        require(
+            _maintenanceReserveContractAddress != address(0),
+            "Provide valid Maintenance Reserve contract Address"
+        );
+        maintenanceReserve = MaintenanceReserve(
+            _maintenanceReserveContractAddress
+        );
+    }
+
+    function setVacancyReserveAddr(
+        address payable _vacancyReserveContractAddress
+    ) external onlyOwner {
+        require(
+            _vacancyReserveContractAddress != address(0),
+            "Provide valid Vacancy Reserve Contract Address"
+        );
+        vacancyReserve = VacancyReserve(_vacancyReserveContractAddress);
     }
 
     function getPropertyStatus(uint256 _propertyTokenId)
@@ -307,7 +329,7 @@ contract RentalProperties is
             remainingRentAmount >=
                 _dailyRentAmountForThisRentalPeriod * _rentalPeriodInDays
         );
-       
+
         emit RentalPeriodInitiated(
             _propertyTokenId,
             _tenant,
