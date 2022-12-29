@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.9 <0.8.17;
+pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/TimersUpgradeable.sol";
@@ -194,14 +194,6 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
             "proposalProof cannot be empty"
         );
         require(_votersRootHash != bytes32(0), "Root hash cannot be empty");
-        require(
-            MaintenanceReserve != IMaintenanceReserve(address(0)),
-            "Invalid Maintenance Resserve contract address"
-        );
-        require(
-            VacancyReserve != IVacancyReserve(address(0)),
-            "Invalid Vacancy Resserve contract address"
-        );
         // uint balanceOfMaintenance =
         proposals[proposalId].tokenId = _tokenId;
         proposals[proposalId].amount = _amount;
