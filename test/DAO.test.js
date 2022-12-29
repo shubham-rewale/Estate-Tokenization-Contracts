@@ -8,7 +8,6 @@ const helpers = require("@nomicfoundation/hardhat-network-helpers");
 require("dotenv").config();
 const MogulDAOMerkleTree = require("../utils/merkleTree");
 const { moveBlocks } = require("../utils/helper");
-const { providers } = require("web3");
 const { BigNumber } = require("ethers");
 const provider = waffle.provider;
 describe("DAO Contract testcases", function () {
@@ -455,7 +454,7 @@ describe("DAO Contract testcases", function () {
           .vote(proposalId, 1, ownerMerkleProof)
       ).to.be.revertedWith("Invalid proof .Voter is not whitelisted");
     });
-    it("whitelisted user can vote onlt when voting is active", async () => {
+    it("whitelisted user can vote only when voting is active", async () => {
       const tx = await daoContract
         .connect(propertyManager)
         .propose(
