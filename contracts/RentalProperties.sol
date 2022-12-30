@@ -98,6 +98,7 @@ contract RentalProperties is
         );
         __Ownable_init();
         __UUPSUpgradeable_init();
+        __ReentrancyGuard_init();
         token = Token(_propertyTokenContract);
         maintenanceReserve = MaintenanceReserve(_maintenanceReserveContract);
         vacancyReserve = VacancyReserve(_vacancyReserveContract);
