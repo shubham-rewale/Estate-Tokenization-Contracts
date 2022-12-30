@@ -259,15 +259,15 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
     ///@dev voters (owners of the property) can call this function to vote for a certain proposal
     ///@param _proposalId Id Representing the proposal
     ///@param _vote 0 -> Against , 1-> For, 2 -> Abstain
-    ///@param _voterMarkleProof markle proof for voter (owner of the property)
+    ///@param _voterMerkleProof Merkle proof for voter (owner of the property)
     function vote(
         uint256 _proposalId,
         uint8 _vote,
-        bytes32[] memory _voterMarkleProof
+        bytes32[] memory _voterMerkleProof
     ) external {
         require(
             MerkleProofUpgradeable.verify(
-                _voterMarkleProof,
+                _voterMerkleProof,
                 proposals[_proposalId].votersRootHash,
                 keccak256(abi.encodePacked(msg.sender))
             ),
