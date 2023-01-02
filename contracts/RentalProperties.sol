@@ -413,7 +413,6 @@ contract RentalProperties is
     function terminateRentalPeriod(uint256 _propertyTokenId)
         public
         onlyPropertyManager
-        nonReentrant
     {
         require(
             rentalPropertyList[_propertyTokenId].listed == true,
