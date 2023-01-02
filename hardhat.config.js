@@ -2,6 +2,7 @@ require("@nomicfoundation/hardhat-toolbox");
 require("@openzeppelin/hardhat-upgrades");
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-ethers");
+require('solidity-coverage')
 require("dotenv").config({ path: "./.env" });
 
 /** @type import('hardhat/config').HardhatUserConfig */
