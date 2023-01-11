@@ -83,7 +83,7 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
     ///@dev token ID => proposalId => Voting
     mapping(uint256 => mapping(uint256 => Voting)) public votings;
     ///@dev token Id to proposal Id counter mapping
-    mapping(uint256 => uint256) public proposalId;
+    mapping(uint256 => uint256) public proposalCounter;
     ///@dev token ID => proposalId => Proposal
     mapping(uint256 => mapping(uint256 => Proposal)) public proposals;
 
@@ -203,23 +203,27 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
             "proposalProof cannot be empty"
         );
         require(_votersRootHash != bytes32(0), "Root hash cannot be empty");
-        proposals[_tokenId][proposalId[_tokenId]].tokenId = _tokenId;
-        proposals[_tokenId][proposalId[_tokenId]].amount = _amount;
-        proposals[_tokenId][proposalId[_tokenId]]
+        proposals[_tokenId][proposalCounter[_tokenId]].tokenId = _tokenId;
+        proposals[_tokenId][proposalCounter[_tokenId]].amount = _amount;
+        proposals[_tokenId][proposalCounter[_tokenId]]
             .withdrawFundsFrom = _withdrawFundsFrom;
-        proposals[_tokenId][proposalId[_tokenId]]
+        proposals[_tokenId][proposalCounter[_tokenId]]
             .proposalProof = _proposalProof;
-        proposals[_tokenId][proposalId[_tokenId]]
+        proposals[_tokenId][proposalCounter[_tokenId]]
             .votersRootHash = _votersRootHash;
         uint64 start = block.number.toUint64() + votingDelay.toUint64();
         uint64 deadline = start + votingPeriod.toUint64();
-        proposals[_tokenId][proposalId[_tokenId]].voteStart.setDeadline(start);
-        proposals[_tokenId][proposalId[_tokenId]].voteEnd.setDeadline(deadline);
+        proposals[_tokenId][proposalCounter[_tokenId]].voteStart.setDeadline(
+            start
+        );
+        proposals[_tokenId][proposalCounter[_tokenId]].voteEnd.setDeadline(
+            deadline
+        );
         //increment the proposalId
-        proposalId[_tokenId] = proposalId[_tokenId] + 1;
+        proposalCounter[_tokenId] = proposalCounter[_tokenId] + 1;
         //emit events
         emit proposalInitiated(
-            proposalId[_tokenId] - 1,
+            proposalCounter[_tokenId] - 1,
             _tokenId,
             _withdrawFundsFrom,
             block.number,
@@ -266,7 +270,7 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
         proposal.votersRootHash = _votersRootHash;
 
         //emit the event
-        emit proposalEdited(proposalId[_tokenId], _tokenId);
+        emit proposalEdited(proposalCounter[_tokenId], _tokenId);
     }
 
     ///@dev voters (owners of the property) can call this function to vote for a certain proposal
