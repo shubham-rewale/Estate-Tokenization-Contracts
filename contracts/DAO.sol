@@ -26,7 +26,7 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
         VacancyReserve
     }
     ///@notice unique proposal id representing each proposal
-    uint256 public proposalId;
+    // uint256 public proposalId;
     ///@dev Time delay (in block numbers) between any proposal creation and start of voting for it.
     uint256 public votingDelay;
     ///@dev Time (in block number) for voting duration of any proposal
@@ -68,14 +68,24 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
     ///@dev event to notify editing of a proposal
     event proposalEdited(uint256 proposalId, uint256 tokenId);
     ///@dev To notify a voting for a proposal
-    event voted(uint256 proposalId, uint256 vote, address voter);
+    event voted(
+        uint256 tokenId,
+        uint256 proposalId,
+        uint256 vote,
+        address voter
+    );
     ///@dev To notify execution of a proposal
-    event executed(uint256 proposalId);
+    event executed(uint256 tokenId, uint256 proposalId);
 
     ///@dev Collection of proposals. Unique proposalId representing the corresponding proposal.
-    mapping(uint256 => Proposal) public proposals;
-    ///@dev voting collection for each proposal . Proposal id representing its voting information
-    mapping(uint256 => Voting) public votings;
+    // mapping(uint256 => Proposal) public proposals;
+    ///@dev voting collection for each proposal .
+    ///@dev token ID => proposalId => Voting
+    mapping(uint256 => mapping(uint256 => Voting)) public votings;
+    ///@dev token Id to proposal Id counter mapping
+    mapping(uint256 => uint256) public proposalId;
+    ///@dev token ID => proposalId => Proposal
+    mapping(uint256 => mapping(uint256 => Proposal)) public proposals;
 
     ///@custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -120,12 +130,12 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
 
     ///@dev Call this function to get information about proposal state.
     ///@param _proposalId Id of the proposal.
-    function getProposalState(uint256 _proposalId)
+    function getProposalState(uint256 _tokenId, uint256 _proposalId)
         public
         view
         returns (ProposalState state)
     {
-        Proposal memory proposal = proposals[_proposalId];
+        Proposal memory proposal = proposals[_tokenId][_proposalId];
         require(proposal.amount != 0, "Proposal not exists");
         uint64 start = proposal.voteStart.getDeadline();
         uint64 deadline = proposal.voteEnd.getDeadline();
@@ -193,20 +203,23 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
             "proposalProof cannot be empty"
         );
         require(_votersRootHash != bytes32(0), "Root hash cannot be empty");
-        proposals[proposalId].tokenId = _tokenId;
-        proposals[proposalId].amount = _amount;
-        proposals[proposalId].withdrawFundsFrom = _withdrawFundsFrom;
-        proposals[proposalId].proposalProof = _proposalProof;
-        proposals[proposalId].votersRootHash = _votersRootHash;
+        proposals[_tokenId][proposalId[_tokenId]].tokenId = _tokenId;
+        proposals[_tokenId][proposalId[_tokenId]].amount = _amount;
+        proposals[_tokenId][proposalId[_tokenId]]
+            .withdrawFundsFrom = _withdrawFundsFrom;
+        proposals[_tokenId][proposalId[_tokenId]]
+            .proposalProof = _proposalProof;
+        proposals[_tokenId][proposalId[_tokenId]]
+            .votersRootHash = _votersRootHash;
         uint64 start = block.number.toUint64() + votingDelay.toUint64();
         uint64 deadline = start + votingPeriod.toUint64();
-        proposals[proposalId].voteStart.setDeadline(start);
-        proposals[proposalId].voteEnd.setDeadline(deadline);
+        proposals[_tokenId][proposalId[_tokenId]].voteStart.setDeadline(start);
+        proposals[_tokenId][proposalId[_tokenId]].voteEnd.setDeadline(deadline);
         //increment the proposalId
-        proposalId++;
+        proposalId[_tokenId] = proposalId[_tokenId] + 1;
         //emit events
         emit proposalInitiated(
-            proposalId - 1,
+            proposalId[_tokenId] - 1,
             _tokenId,
             _withdrawFundsFrom,
             block.number,
@@ -234,7 +247,7 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
             "Caller is not property manager"
         );
         require(
-            getProposalState(_proposalId) == ProposalState.Pending,
+            getProposalState(_tokenId, _proposalId) == ProposalState.Pending,
             "Proposal not in pending state"
         );
         require(_amount != 0, "Amount should be greater than 0");
@@ -244,7 +257,7 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
         );
         require(_votersRootHash != bytes32(0), "Root hash cannot be empty");
 
-        Proposal storage proposal = proposals[_proposalId];
+        Proposal storage proposal = proposals[_tokenId][_proposalId];
 
         proposal.tokenId = _tokenId;
         proposal.amount = _amount;
@@ -253,7 +266,7 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
         proposal.votersRootHash = _votersRootHash;
 
         //emit the event
-        emit proposalEdited(_proposalId, _tokenId);
+        emit proposalEdited(proposalId[_tokenId], _tokenId);
     }
 
     ///@dev voters (owners of the property) can call this function to vote for a certain proposal
@@ -261,6 +274,7 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
     ///@param _vote 0 -> Against , 1-> For, 2 -> Abstain
     ///@param _voterMerkleProof Merkle proof for voter (owner of the property)
     function vote(
+        uint256 _tokenId,
         uint256 _proposalId,
         uint8 _vote,
         bytes32[] memory _voterMerkleProof
@@ -268,43 +282,46 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
         require(
             MerkleProofUpgradeable.verify(
                 _voterMerkleProof,
-                proposals[_proposalId].votersRootHash,
+                proposals[_tokenId][_proposalId].votersRootHash,
                 keccak256(abi.encodePacked(msg.sender))
             ),
             "Invalid proof .Voter is not whitelisted"
         );
         require(
-            getProposalState(_proposalId) == ProposalState.Active,
+            getProposalState(_tokenId, _proposalId) == ProposalState.Active,
             "Voting is not active"
         );
         require(_vote == 0 || _vote == 1 || _vote == 2, "Invalid vote id");
 
-        bytes32 voteHash = keccak256(abi.encodePacked(msg.sender, _proposalId));
+        bytes32 voteHash = keccak256(
+            abi.encodePacked(msg.sender, _tokenId, _proposalId)
+        );
         require(
-            !votings[_proposalId].isVoted[voteHash],
+            !votings[_tokenId][_proposalId].isVoted[voteHash],
             "Cannot vote multiple times to the same proposal"
         );
         if (_vote == 0) {
-            votings[_proposalId].against++;
+            votings[_tokenId][_proposalId].against++;
         } else if (_vote == 1) {
-            votings[_proposalId].forVote++;
+            votings[_tokenId][_proposalId].forVote++;
         } else {
-            votings[_proposalId].abstain++;
+            votings[_tokenId][_proposalId].abstain++;
         }
-        votings[_proposalId].isVoted[voteHash] = true;
-        emit voted(_proposalId, _vote, msg.sender);
+        votings[_tokenId][_proposalId].isVoted[voteHash] = true;
+        emit voted(_tokenId, _proposalId, _vote, msg.sender);
     }
 
     ///@dev Owner call this function to execute a the proposal after voting period is over for that proposal
     ///@param _proposalId Id Representing the proposal
     ///@dev If voting is successful, then the property manager will get the desired amount transferred to his account from reserve contract
-    function execute(uint256 _proposalId)
+    function execute(uint256 _tokenId, uint256 _proposalId)
         external
         onlyOwner
         returns (bool result)
     {
         require(
-            getProposalState(_proposalId) == ProposalState.ExecutionPeriod,
+            getProposalState(_tokenId, _proposalId) ==
+                ProposalState.ExecutionPeriod,
             "Proposal is not in Execution state"
         );
         require(
@@ -315,21 +332,21 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
             VacancyReserve != IVacancyReserve(address(0)),
             "Invalid Vacancy Resserve contract address"
         );
-        result = isVotingSuccessful(_proposalId);
+        result = isVotingSuccessful(_tokenId, _proposalId);
         if (result) {
-            handleTransfer(_proposalId);
+            handleTransfer(_tokenId, _proposalId);
         }
-        delete proposals[_proposalId];
-        delete votings[_proposalId];
-        emit executed(_proposalId);
+        delete proposals[_tokenId][_proposalId];
+        delete votings[_tokenId][_proposalId];
+        emit executed(_tokenId, _proposalId);
         return result;
     }
 
     ///@dev handles transfer of funds from a reserve contract
     ///@param _proposalId proposal ID
     ///returns a bool whether this transfer is successful or not
-    function handleTransfer(uint256 _proposalId) internal {
-        Proposal memory proposal = proposals[_proposalId];
+    function handleTransfer(uint256 _tokenId, uint256 _proposalId) internal {
+        Proposal memory proposal = proposals[_tokenId][_proposalId];
         if (proposal.withdrawFundsFrom == ReserveContracts.MaintenanceReserve) {
             MaintenanceReserve.withdrawFromMaintenanceReserve(
                 proposal.tokenId,
@@ -349,12 +366,12 @@ contract DAO is OwnableUpgradeable, UUPSUpgradeable {
     }
 
     ///@dev to get the result of a voting
-    function isVotingSuccessful(uint256 _proposalId)
+    function isVotingSuccessful(uint256 _tokenId, uint256 _proposalId)
         internal
         view
         returns (bool result)
     {
-        Voting storage voting = votings[_proposalId];
+        Voting storage voting = votings[_tokenId][_proposalId];
         return voting.forVote + voting.abstain > voting.against;
     }
 
