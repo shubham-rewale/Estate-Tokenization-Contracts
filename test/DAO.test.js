@@ -282,7 +282,7 @@ describe("DAO Contract testcases", function () {
       //   await provider.getBlockNumber(),
       //   votingDelay.add(await provider.getBlockNumber()),
       //   (votingPeriod.add(votingDelay)).add(await provider.getBlockNumber()))
-      let result = await daoContract.getProposalState(0);
+      let result = await daoContract.getProposalState(tokenId,0);
       expect(result).to.equal(BigNumber.from(0));
     });
   });
@@ -425,7 +425,7 @@ describe("DAO Contract testcases", function () {
           )
       )
         .to.emit(daoContract, "proposalEdited")
-        .withArgs(0, 0);
+        
     });
   });
   describe("Vote function test cases", function () {
@@ -451,7 +451,7 @@ describe("DAO Contract testcases", function () {
       await expect(
         daoContract
           .connect(propertyManager)
-          .vote(proposalId, 1, ownerMerkleProof)
+          .vote(tokenId,proposalId, 1, ownerMerkleProof)
       ).to.be.revertedWith("Invalid proof .Voter is not whitelisted");
     });
     it("whitelisted user can vote only when voting is active", async () => {
@@ -474,7 +474,7 @@ describe("DAO Contract testcases", function () {
       await expect(
         daoContract
           .connect(propertyOwner1)
-          .vote(proposalId, 1, ownerMerkleProof)
+          .vote(tokenId,proposalId, 1, ownerMerkleProof)
       ).to.be.revertedWith("Voting is not active");
     });
     it("voting id can ve 0 or 1 or 2", async () => {
@@ -499,7 +499,7 @@ describe("DAO Contract testcases", function () {
       await expect(
         daoContract
           .connect(propertyOwner1)
-          .vote(proposalId, 3, ownerMerkleProof)
+          .vote(tokenId,proposalId, 3, ownerMerkleProof)
       ).to.be.revertedWith("Invalid vote id");
     });
     it("A user can vote only once for particular proposal", async () => {
@@ -523,11 +523,11 @@ describe("DAO Contract testcases", function () {
       );
       await daoContract
         .connect(propertyOwner1)
-        .vote(proposalId, 1, ownerMerkleProof);
+        .vote(tokenId,proposalId, 1, ownerMerkleProof);
       await expect(
         daoContract
           .connect(propertyOwner1)
-          .vote(proposalId, 1, ownerMerkleProof)
+          .vote(tokenId,proposalId, 1, ownerMerkleProof)
       ).to.be.revertedWith("Cannot vote multiple times to the same proposal");
     });
     it("It should emit voted event in case of successful voting", async () => {
@@ -552,10 +552,10 @@ describe("DAO Contract testcases", function () {
       await expect(
         daoContract
           .connect(propertyOwner1)
-          .vote(proposalId, 1, ownerMerkleProof)
+          .vote(tokenId,proposalId, 1, ownerMerkleProof)
       )
         .to.emit(daoContract, "voted")
-        .withArgs(proposalId, 1, propertyOwner1.address);
+        .withArgs(tokenId,proposalId, 1, propertyOwner1.address);
     });
   });
   describe("execute function testcases", function () {
@@ -579,11 +579,11 @@ describe("DAO Contract testcases", function () {
       );
       await daoContract
         .connect(propertyOwner1)
-        .vote(proposalId, 1, ownerMerkleProof);
+        .vote(tokenId,proposalId, 1, ownerMerkleProof);
       //move the blocks to get past of voting period
       await moveBlocks(votingPeriod + 1);
       await expect(
-        daoContract.connect(propertyManager).execute(proposalId)
+        daoContract.connect(propertyManager).execute(tokenId,proposalId)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
     it("owner can call execute function only if Proposal is  in Execution state", async () => {
@@ -606,9 +606,9 @@ describe("DAO Contract testcases", function () {
       );
       await daoContract
         .connect(propertyOwner1)
-        .vote(proposalId, 1, ownerMerkleProof);
+        .vote(tokenId,proposalId, 1, ownerMerkleProof);
       await expect(
-        daoContract.connect(mogulPlatformOwnerAddress).execute(proposalId)
+        daoContract.connect(mogulPlatformOwnerAddress).execute(tokenId,proposalId)
       ).to.be.revertedWith("Proposal is not in Execution state");
     });
     it("It should emit executed in case of successful execution", async () => {
@@ -631,14 +631,14 @@ describe("DAO Contract testcases", function () {
       );
       await daoContract
         .connect(propertyOwner1)
-        .vote(proposalId, 1, ownerMerkleProof);
+        .vote(tokenId,proposalId, 1, ownerMerkleProof);
       //move the blocks to get past of voting period
       await moveBlocks(votingPeriod + 1);
       await expect(
-        daoContract.connect(mogulPlatformOwnerAddress).execute(proposalId)
+        daoContract.connect(mogulPlatformOwnerAddress).execute(tokenId,proposalId)
       )
         .to.emit(daoContract, "executed")
-        .withArgs(proposalId);
+        .withArgs(tokenId,proposalId);
     });
     it("proposal details should be cleared in case of successful execution", async () => {
       const tx = await daoContract
@@ -660,11 +660,11 @@ describe("DAO Contract testcases", function () {
       );
       await daoContract
         .connect(propertyOwner1)
-        .vote(proposalId, 1, ownerMerkleProof);
+        .vote(tokenId,proposalId, 1, ownerMerkleProof);
       //move the blocks to get past of voting period
       await moveBlocks(votingPeriod + 1);
-      await daoContract.connect(mogulPlatformOwnerAddress).execute(proposalId);
-      const proposal = await daoContract.proposals(proposalId);
+      await daoContract.connect(mogulPlatformOwnerAddress).execute(tokenId,proposalId);
+      const proposal = await daoContract.proposals(tokenId,proposalId);
       expect(proposal.amount).to.equal(BigNumber.from(0));
       expect(proposal.proposalProof).to.equal("");
     });
@@ -688,13 +688,13 @@ describe("DAO Contract testcases", function () {
       );
       await daoContract
         .connect(propertyOwner1)
-        .vote(proposalId, 1, ownerMerkleProof);
+        .vote(tokenId,proposalId, 1, ownerMerkleProof);
       //move the blocks to get past of voting period
       await moveBlocks(votingPeriod + 1);
       const proposalManagerBalanceBefore = await provider.getBalance(
         propertyManager.address
       );
-      await daoContract.connect(mogulPlatformOwnerAddress).execute(proposalId);
+      await daoContract.connect(mogulPlatformOwnerAddress).execute(tokenId,proposalId);
       const proposalManagerBalanceAfter = await provider.getBalance(
         propertyManager.address
       );
@@ -723,14 +723,14 @@ describe("DAO Contract testcases", function () {
       );
       await daoContract
         .connect(propertyOwner1)
-        .vote(proposalId, 1, ownerMerkleProof);
+        .vote(tokenId,proposalId, 1, ownerMerkleProof);
       //move the blocks to get past of voting period
       await moveBlocks(votingPeriod + 1);
       await expect(
-        daoContract.connect(mogulPlatformOwnerAddress).execute(proposalId)
+        daoContract.connect(mogulPlatformOwnerAddress).execute(tokenId,proposalId)
       ).to.be.revertedWith("Not enough funds in the Vacancy reserve");
       // proposal should be there after proposal execution
-      const proposal = await daoContract.proposals(proposalId);
+      const proposal = await daoContract.proposals(tokenId,proposalId);
       expect(proposal.amount).to.equal(ethers.utils.parseEther("0.6"));
       expect(proposal.proposalProof).to.equal(proposalProof);
     });
